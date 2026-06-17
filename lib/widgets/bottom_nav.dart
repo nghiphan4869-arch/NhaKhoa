@@ -3,6 +3,7 @@ import 'package:nhakhoa/Screen/TrangChu.dart';
 import 'package:nhakhoa/Screen/CaNhan.dart';
 import 'package:nhakhoa/Screen/NhacLichHen.dart';
 import 'package:nhakhoa/Screen/DieuTri.dart';
+import 'package:nhakhoa/Screen/LichHen.dart';
 
 class BottomNav extends StatelessWidget {
   final int currentIndex;
@@ -23,12 +24,12 @@ class BottomNav extends StatelessWidget {
       onTap: (index) {
         switch (index) {
           case 0:
-            // Navigator.pushReplacement(
-            //   context,
-            //   MaterialPageRoute(
-            //     builder: (_) => const LichHen(),
-            //   ),
-            // );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const LichHen(),
+              ),
+            );
             break;
 
           case 1:

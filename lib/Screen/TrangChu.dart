@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/DatLichHen.dart';
+import 'package:nhakhoa/Screen/DonThuoc.dart';
+import 'package:nhakhoa/Screen/LichHen.dart';
 import 'package:nhakhoa/Screen/PhanHoi.dart';
+import 'package:nhakhoa/Screen/TaiKham.dart';
 import '../widgets/home_banner.dart';
 import '../widgets/home_header.dart';
 import '../widgets/menu_card.dart';
@@ -59,7 +62,12 @@ class TrangChu extends StatelessWidget {
                     color:
                         const Color(0xffefe5f2),
                     onTap: () {
-                      
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LichHen(),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(width: 10),
@@ -96,6 +104,14 @@ class TrangChu extends StatelessWidget {
                     title: "Đơn thuốc",
                     color:
                         const Color(0xffdff0e6),
+                        onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DonThuoc(),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(width: 10),
                   MenuCard(
@@ -103,6 +119,14 @@ class TrangChu extends StatelessWidget {
                     title: "Tái khám",
                     color:
                         const Color(0xffdff0e6),
+                        onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TaiKham(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

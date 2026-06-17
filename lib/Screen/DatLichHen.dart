@@ -121,6 +121,7 @@ class _DatLichHen extends State<DatLichHen> {
                       });
                     },
                     child: Container(
+                      height: 100,
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -131,16 +132,20 @@ class _DatLichHen extends State<DatLichHen> {
                         ),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Column(
+                      child: Column(
                         children: [
-                          CircleAvatar(
+                          const CircleAvatar(
                             child: Icon(Icons.person),
                           ),
-                          SizedBox(height: 5),
+
+                          const SizedBox(height: 5),
+
                           Text(
-                            "BS. Trần Thùy Dương",
+                            doctors[index],
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 10),
+                            style: const TextStyle(
+                              fontSize: 10,
+                            ),
                           ),
                         ],
                       ),
