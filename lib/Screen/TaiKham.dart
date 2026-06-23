@@ -59,9 +59,15 @@ Widget build(BuildContext context) {
           fontSize: 22,
         ),
       ),
-      leading: const BackButton(
-        color: Colors.black,
-      ),
+      leading: IconButton(
+          onPressed: (){
+            Navigator.pop(context);
+          },
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+          ),
+        ),
     ),
 
     body: Padding(

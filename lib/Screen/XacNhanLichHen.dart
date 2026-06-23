@@ -23,7 +23,15 @@ class XacNhanLichHen extends StatelessWidget {
       backgroundColor: const Color(0xfff5f5f5),
 
       appBar: AppBar(
-        title: const Text("Xác nhận lịch hẹn"),
+       backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text("Xác nhận lịch hẹn",
+        style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
         centerTitle: true,
       ),
 
@@ -158,8 +166,7 @@ class XacNhanLichHen extends StatelessWidget {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      const Color(0xff3f5cb8),
+                  backgroundColor:Colors.blue,
                 ),
                 onPressed: () {},
                 child: const Text(

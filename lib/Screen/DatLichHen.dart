@@ -77,7 +77,15 @@ class _DatLichHen extends State<DatLichHen> {
       backgroundColor: const Color(0xfff5f5f5),
 
       appBar: AppBar(
-        title: const Text("Đặt lịch hẹn"),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text("Đặt lịch hẹn",
+        style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
         centerTitle: true,
       ),
 
@@ -344,7 +352,19 @@ class _DatLichHen extends State<DatLichHen> {
             SizedBox(
               width: double.infinity,
               height: 50,
+              
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                elevation: 3,
+
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(15),
+                ),
+              ),
+
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -360,6 +380,7 @@ class _DatLichHen extends State<DatLichHen> {
                   );
                 },
                 child: const Text("Tiếp tục"),
+                
               ),
             )
           ],

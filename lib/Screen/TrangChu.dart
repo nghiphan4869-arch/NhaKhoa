@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/DatLichHen.dart';
+import 'package:nhakhoa/Screen/DieuTri.dart';
 import 'package:nhakhoa/Screen/DonThuoc.dart';
 import 'package:nhakhoa/Screen/LichHen.dart';
 import 'package:nhakhoa/Screen/PhanHoi.dart';
 import 'package:nhakhoa/Screen/TaiKham.dart';
+import 'package:nhakhoa/Screen/HuyLichHen.dart';
 import '../widgets/home_banner.dart';
 import '../widgets/home_header.dart';
 import '../widgets/menu_card.dart';
@@ -17,13 +19,13 @@ class TrangChu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor:
-          const Color(0xfff5f5f5),
+          const Color.fromARGB(255, 245, 242, 242),
 
       body: SafeArea(
         child: SingleChildScrollView(
           padding:
               const EdgeInsets.all(16),
-          child: Column(
+          child: Column(    
             children: [
 
               const HomeHeader(),
@@ -76,6 +78,14 @@ class TrangChu extends StatelessWidget {
                     title: "Hủy lịch hẹn",
                     color:
                         const Color(0xffefe5f2),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HuyLichHen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -97,6 +107,14 @@ class TrangChu extends StatelessWidget {
                         "Tiến trình điều trị",
                     color:
                         const Color(0xffdff0e6),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DieuTri(),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(width: 10),
                   MenuCard(
@@ -104,7 +122,7 @@ class TrangChu extends StatelessWidget {
                     title: "Đơn thuốc",
                     color:
                         const Color(0xffdff0e6),
-                        onTap: () {
+                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(

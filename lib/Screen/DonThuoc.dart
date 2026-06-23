@@ -9,14 +9,14 @@ class DonThuoc extends StatelessWidget {
       backgroundColor: const Color(0xfff4f6fb),
 
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
 
         title: const Text(
           "Đơn thuốc",
           style: TextStyle(
-            color: Color(0xff1A237E),
+            color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 24,
           ),
