@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/DangKy.dart';
 import 'package:nhakhoa/Screen/QuenMatKhau.dart';
 import 'package:nhakhoa/Screen/TrangChu.dart';
+import 'package:nhakhoa/services/auth_service.dart';
 
 class DangNhap extends StatefulWidget {
   const DangNhap({super.key});
@@ -20,6 +21,98 @@ class _DangNhapState extends State<DangNhap> {
 
   bool isLoading = false;
   bool isPasswordHidden = true;
+
+  void _handleLogin() async {
+    final String taiKhoan = txtTaiKhoan.text.trim();
+    final String matKhau = txtMatKhau.text;
+
+    if (taiKhoan.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập Email hoặc Số điện thoại'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (matKhau.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập Mật khẩu'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final user = await AuthService.login(taiKhoan, matKhau);
+
+      if (user != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng nhập thành công!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const TrangChu()),
+          );
+        }
+      } else {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: const Text('Đăng nhập thất bại'),
+              content: const Text('Email/SĐT hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Đóng'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            title: const Text('Lỗi kết nối'),
+            content: const Text('Không thể kết nối đến máy chủ. Vui lòng kiểm tra máy chủ và kết nối mạng.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Thử lại'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,16 +294,23 @@ class _DangNhapState extends State<DangNhap> {
                                         12),
                               ),
                             ),
-                            onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => TrangChu(),),);
-                            },
-                            child: const Text(
-                              "Đăng nhập",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
+                            onPressed: isLoading ? null : _handleLogin,
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    "Đăng nhập",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
                         ),
 

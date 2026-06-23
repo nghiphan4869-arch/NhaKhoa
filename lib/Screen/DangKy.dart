@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/Dangnhap.dart';
+import 'package:nhakhoa/services/auth_service.dart';
 
 class DangKy extends StatefulWidget {
   const DangKy({super.key});
@@ -12,6 +13,123 @@ class _DangKyState extends State<DangKy> {
   bool hidePassword = true;
   bool hideConfirmPassword = true;
   bool agree = false;
+  bool isLoading = false;
+
+  final TextEditingController txtHoTen = TextEditingController();
+  final TextEditingController txtEmail = TextEditingController();
+  final TextEditingController txtSDT = TextEditingController();
+  final TextEditingController txtMatKhau = TextEditingController();
+  final TextEditingController txtConfirmMatKhau = TextEditingController();
+
+  void _handleRegister() async {
+    final String hoTen = txtHoTen.text.trim();
+    final String email = txtEmail.text.trim();
+    final String sdt = txtSDT.text.trim();
+    final String matKhau = txtMatKhau.text;
+    final String confirmMatKhau = txtConfirmMatKhau.text;
+
+    if (!agree) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đồng ý với Điều khoản và Chính sách bảo mật'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (hoTen.isEmpty || email.isEmpty || sdt.isEmpty || matKhau.isEmpty || confirmMatKhau.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng điền đầy đủ thông tin'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (matKhau != confirmMatKhau) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mật khẩu xác nhận không khớp'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final success = await AuthService.register(
+        hoTen: hoTen,
+        email: email,
+        sdt: sdt,
+        matKhau: matKhau,
+      );
+
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng ký tài khoản thành công!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const DangNhap()),
+          );
+        }
+      } else {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: const Text('Đăng ký thất bại'),
+              content: const Text('Đăng ký thất bại. Email hoặc Số điện thoại có thể đã tồn tại.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Đóng'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            title: const Text('Lỗi kết nối'),
+            content: const Text('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại sau.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +212,7 @@ class _DangKyState extends State<DangKy> {
                           label: "Họ và tên",
                           hint: "Nhập họ và tên",
                           icon: Icons.person_outline,
+                          controller: txtHoTen,
                         ),
 
                         const SizedBox(height: 15),
@@ -102,6 +221,7 @@ class _DangKyState extends State<DangKy> {
                           label: "Email",
                           hint: "Nhập email",
                           icon: Icons.email_outlined,
+                          controller: txtEmail,
                         ),
 
                         const SizedBox(height: 15),
@@ -110,6 +230,7 @@ class _DangKyState extends State<DangKy> {
                           label: "Số điện thoại",
                           hint: "Nhập số điện thoại",
                           icon: Icons.phone_outlined,
+                          controller: txtSDT,
                         ),
 
                         const SizedBox(height: 15),
@@ -118,6 +239,7 @@ class _DangKyState extends State<DangKy> {
                           label: "Mật khẩu",
                           hint: "Nhập mật khẩu",
                           hide: hidePassword,
+                          controller: txtMatKhau,
                           onPressed: () {
                             setState(() {
                               hidePassword = !hidePassword;
@@ -131,6 +253,7 @@ class _DangKyState extends State<DangKy> {
                           label: "Xác nhận mật khẩu",
                           hint: "Nhập lại mật khẩu",
                           hide: hideConfirmPassword,
+                          controller: txtConfirmMatKhau,
                           onPressed: () {
                             setState(() {
                               hideConfirmPassword =
@@ -211,14 +334,23 @@ class _DangKyState extends State<DangKy> {
                                         12),
                               ),
                             ),
-                            onPressed: () {},
-                            child: const Text(
-                              "Đăng ký",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
+                            onPressed: isLoading ? null : _handleRegister,
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    "Đăng ký",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
                         ),
 
@@ -264,6 +396,7 @@ class _DangKyState extends State<DangKy> {
     required String label,
     required String hint,
     required IconData icon,
+    required TextEditingController controller,
   }) {
     return Column(
       crossAxisAlignment:
@@ -277,6 +410,7 @@ class _DangKyState extends State<DangKy> {
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: controller,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon),
@@ -294,6 +428,7 @@ class _DangKyState extends State<DangKy> {
     required String label,
     required String hint,
     required bool hide,
+    required TextEditingController controller,
     required VoidCallback onPressed,
   }) {
     return Column(
@@ -308,6 +443,7 @@ class _DangKyState extends State<DangKy> {
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: controller,
           obscureText: hide,
           decoration: InputDecoration(
             hintText: hint,
