@@ -93,7 +93,7 @@ class _DoiMatKhauState extends State<DoiMatKhau> {
       if (result['success'] == true) {
         if (!mounted) return;
         
-        // Show success alert and navigate back to login
+        // Show success alert and pop back to previous screen
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -112,30 +112,20 @@ class _DoiMatKhauState extends State<DoiMatKhau> {
               ],
             ),
             content: const Text(
-              "Đổi mật khẩu thành công! Vui lòng đăng nhập lại bằng mật khẩu mới.",
+              "Đổi mật khẩu thành công!",
               style: TextStyle(fontSize: 16),
             ),
             actions: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:  Colors.blue,
+                  backgroundColor: Colors.blue,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  
-                  // Clear login session
-                  await AuthService.logout();
-                  
-                  if (mounted) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const DangNhap()),
-                      (route) => false,
-                    );
-                  }
+                onPressed: () {
+                  Navigator.pop(ctx); // Đóng dialog
+                  Navigator.pop(context); // Trở về màn hình trước đó (Cá nhân)
                 },
                 child: const Text(
                   "Đồng ý",

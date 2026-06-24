@@ -16,18 +16,17 @@ class LichHen extends StatefulWidget {
 }
 
 class _LichHenState extends State<LichHen> {
-  DateTime selectedDay = DateTime.now();
-  int startIndex = 0;
-
   List<dynamic> _appointments = [];
   bool _isLoading = true;
   int? _maBenhNhan;
+  int selectedTab = 0; // 0: Chờ duyệt, 1: Đã duyệt, 2: Đã hoàn tất
 
   @override
   void initState() {
     super.initState();
     _loadAppointments();
   }
+
 
   Future<void> _loadAppointments() async {
     setState(() {
@@ -60,9 +59,9 @@ class _LichHenState extends State<LichHen> {
     switch (maBacSi) {
       case 1:
         return "BS. Trần Thùy Dương";
-      case 2:
-        return "BS. Nguyễn Văn A";
       case 3:
+        return "BS. Nguyễn Văn A";
+      case 4:
         return "BS. Lê Thị B";
       default:
         return "Bác sĩ Nha Khoa";
@@ -85,51 +84,58 @@ class _LichHenState extends State<LichHen> {
     return timeStr;
   }
 
-  List<dynamic> get _upcomingAppointments {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return _appointments.where((app) {
-      if (app['TrangThai'] == 'DaHuy') return false;
-      try {
-        final ngayHenStr = app['NgayHen'];
-        if (ngayHenStr == null) return false;
-        final dt = DateTime.parse(ngayHenStr).toLocal();
-        final appointmentDay = DateTime(dt.year, dt.month, dt.day);
-        return appointmentDay.isAfter(today) || appointmentDay.isAtSameMomentAs(today);
-      } catch (e) {
-        return false;
-      }
-    }).toList();
+  List<dynamic> get _pendingAppointments {
+    return _appointments.where((app) => app['TrangThai'] == 'ChoDuyet').toList();
   }
 
-  List<dynamic> get _pastAppointments {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return _appointments.where((app) {
-      if (app['TrangThai'] == 'DaHuy') return true;
-      try {
-        final ngayHenStr = app['NgayHen'];
-        if (ngayHenStr == null) return true;
-        final dt = DateTime.parse(ngayHenStr).toLocal();
-        final appointmentDay = DateTime(dt.year, dt.month, dt.day);
-        return appointmentDay.isBefore(today);
-      } catch (e) {
-        return true;
-      }
-    }).toList();
+  List<dynamic> get _approvedAppointments {
+    return _appointments.where((app) => app['TrangThai'] == 'DaDuyet' || app['TrangThai'] == 'DaXacNhan' || app['TrangThai'] == 'ChoKham').toList();
   }
 
-  final List<String> thu = [
-    "T2","T3","T4","T5","T6","T7","CN"
-  ];
+  List<dynamic> get _completedAppointments {
+    return _appointments.where((app) => app['TrangThai'] == 'DaHoanTat').toList();
+  }
 
-  List<DateTime> get dates =>
-      List.generate(
-        365,
-        (index) => DateTime.now().add(
-          Duration(days: index),
+  List<dynamic> _getActiveAppointmentsList() {
+    switch (selectedTab) {
+      case 0:
+        return _pendingAppointments;
+      case 1:
+        return _approvedAppointments;
+      case 2:
+        return _completedAppointments;
+      default:
+        return [];
+    }
+  }
+
+  Widget _buildTab(String title, int index) {
+    bool active = selectedTab == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedTab = index;
+        });
+      },
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: active ? const Color(0xff6d8df5) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
       ),
     );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,208 +239,27 @@ class _LichHenState extends State<LichHen> {
                                 "Lịch điều trị",
                                 const DieuTri(),
                               ),
-                              _menu(
-                                context,
-                                Icons.schedule,
-                                Colors.orange,
-                                "Lịch hẹn",
-                                null,
-                              ),
+                            ],
+                          ),
+
+
+
+                          const SizedBox(height: 20),
+
+                          /// TABS
+                          Row(
+                            children: [
+                              Expanded(child: _buildTab("Chờ duyệt", 0)),
+                              const SizedBox(width: 8),
+                              Expanded(child: _buildTab("Đã duyệt", 1)),
+                              const SizedBox(width: 8),
+                              Expanded(child: _buildTab("Đã hoàn tất", 2)),
                             ],
                           ),
 
                           const SizedBox(height: 20),
 
-                          /// LỊCH
-                          Container(
-                            padding: const EdgeInsets.all(15),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      "Tháng ${selectedDay.month}, ${selectedDay.year}",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          selectedDay = DateTime.now();
-                                        });
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xffedf5ff),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: const Row(
-                                          children: [
-                                            Icon(
-                                              Icons.calendar_today,
-                                              size: 16,
-                                              color: Colors.blue,
-                                            ),
-                                            SizedBox(width: 5),
-                                            Text(
-                                              "Hôm nay",
-                                              style: TextStyle(
-                                                color: Colors.blue,
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 15),
-
-                                SizedBox(
-                                  height: 70,
-                                  child: Row(
-                                    children: [
-                                      /// Mũi tên trái
-                                      Container(
-                                        width: 28,
-                                        height: 28,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.grey.shade300,
-                                          ),
-                                        ),
-                                        child: IconButton(
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                          onPressed: startIndex > 0
-                                              ? () {
-                                                  setState(() {
-                                                    startIndex -= 7;
-                                                  });
-                                                }
-                                              : null,
-                                          icon: const Icon(
-                                            Icons.chevron_left,
-                                            size: 16,
-                                          ),
-                                        ),
-                                      ),
-
-                                      const SizedBox(width: 8),
-
-                                      /// Danh sách ngày
-                                      Expanded(
-                                        child: ListView.builder(
-                                          scrollDirection: Axis.horizontal,
-                                          itemCount: 7,
-                                          itemBuilder: (context, index) {
-                                            final date = dates[startIndex + index];
-                                            bool selected = selectedDay.day == date.day &&
-                                                selectedDay.month == date.month &&
-                                                selectedDay.year == date.year;
-
-                                            return GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  selectedDay = date;
-                                                });
-                                              },
-                                              child: Container(
-                                                width: 55,
-                                                margin: const EdgeInsets.only(right: 8),
-                                                decoration: BoxDecoration(
-                                                  color: selected ? Colors.blue : Colors.white,
-                                                  borderRadius: BorderRadius.circular(12),
-                                                  border: Border.all(
-                                                    color: selected ? Colors.blue : Colors.grey.shade300,
-                                                  ),
-                                                ),
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      thu[date.weekday - 1],
-                                                      style: TextStyle(
-                                                        color: selected ? Colors.white : Colors.black,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 5),
-                                                    Text(
-                                                      "${date.day}/${date.month}",
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.bold,
-                                                        color: selected ? Colors.white : Colors.black,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-
-                                      const SizedBox(width: 10),
-
-                                      /// Mũi tên phải
-                                      Container(
-                                        width: 28,
-                                        height: 28,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.grey.shade300,
-                                          ),
-                                        ),
-                                        child: IconButton(
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                          onPressed: () {
-                                            setState(() {
-                                              startIndex += 7;
-                                            });
-                                          },
-                                          icon: const Icon(
-                                            Icons.chevron_right,
-                                            size: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          const Text(
-                            "Lịch hẹn sắp tới",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          _upcomingAppointments.isEmpty
+                          _getActiveAppointmentsList().isEmpty
                               ? Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(20),
@@ -445,7 +270,7 @@ class _LichHenState extends State<LichHen> {
                                   ),
                                   child: const Center(
                                     child: Text(
-                                      "Chưa có lịch hẹn sắp tới nào",
+                                      "Không có lịch hẹn nào",
                                       style: TextStyle(
                                         color: Colors.grey,
                                         fontStyle: FontStyle.italic,
@@ -456,67 +281,27 @@ class _LichHenState extends State<LichHen> {
                               : ListView.builder(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _upcomingAppointments.length,
+                                  itemCount: _getActiveAppointmentsList().length,
                                   itemBuilder: (context, index) {
-                                    final app = _upcomingAppointments[index];
+                                    final app = _getActiveAppointmentsList()[index];
+                                    final status = app['TrangThai'] ?? '';
+                                    
+                                    // Choose a background color based on status
+                                    Color cardColor = const Color(0xffedf5ff); // Default blue-ish
+                                    if (status == 'ChoDuyet') {
+                                      cardColor = const Color(0xfffff7eb); // Orange-ish
+                                    } else if (status == 'DaHoanTat') {
+                                      cardColor = const Color(0xfff0fbf0); // Green-ish
+                                    }
+
                                     return Padding(
                                       padding: const EdgeInsets.only(bottom: 10),
                                       child: _appointmentCard(
-                                        color: const Color(0xffedf5ff),
+                                        color: cardColor,
                                         time: "${_formatDate(app['NgayHen'])} • ${_formatTime(app['GioHen'])}",
                                         doctor: _getDoctorName(app['MaBacSi'] ?? 1),
                                         note: app['LyDoKham'] ?? 'Không có lý do',
-                                        status: app['TrangThai'] ?? '',
-                                      ),
-                                    );
-                                  },
-                                ),
-
-                          const SizedBox(height: 15),
-
-                          const Text(
-                            "Lịch hẹn đã qua",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          _pastAppointments.isEmpty
-                              ? Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(15),
-                                    border: Border.all(color: Colors.grey.shade300),
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      "Chưa có lịch hẹn đã qua",
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _pastAppointments.length,
-                                  itemBuilder: (context, index) {
-                                    final app = _pastAppointments[index];
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
-                                      child: _appointmentCard(
-                                        color: const Color(0xffeefbea),
-                                        time: "${_formatDate(app['NgayHen'])} • ${_formatTime(app['GioHen'])}",
-                                        doctor: _getDoctorName(app['MaBacSi'] ?? 1),
-                                        note: app['LyDoKham'] ?? 'Không có lý do',
-                                        status: app['TrangThai'] ?? '',
+                                        status: status,
                                       ),
                                     );
                                   },
@@ -646,15 +431,21 @@ class _LichHenState extends State<LichHen> {
         textColor = Colors.orange.shade800;
         label = 'Chờ duyệt';
         break;
+      case 'DaDuyet':
       case 'DaXacNhan':
         bgColor = Colors.blue.shade50;
         textColor = Colors.blue.shade800;
-        label = 'Đã xác nhận';
+        label = 'Đã duyệt';
         break;
       case 'ChoKham':
         bgColor = Colors.green.shade50;
         textColor = Colors.green.shade800;
         label = 'Chờ khám';
+        break;
+      case 'DaHoanTat':
+        bgColor = Colors.teal.shade50;
+        textColor = Colors.teal.shade800;
+        label = 'Đã hoàn tất';
         break;
       case 'DaHuy':
         bgColor = Colors.red.shade50;

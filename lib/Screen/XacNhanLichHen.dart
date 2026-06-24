@@ -71,9 +71,9 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
       case "BS. Trần Thùy Dương":
         return 1;
       case "BS. Nguyễn Văn A":
-        return 2;
-      case "BS. Lê Thị B":
         return 3;
+      case "BS. Lê Thị B":
+        return 4;
       default:
         return 1;
     }
@@ -109,7 +109,7 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
     final int maBacSi = _getDoctorId(widget.doctorName);
     final String lyDo = "${widget.serviceName}: ${widget.reason.trim().isNotEmpty ? widget.reason.trim() : 'Đặt lịch khám qua ứng dụng'}";
 
-    final success = await LichHenService.createAppointment(
+    final errorMessage = await LichHenService.createAppointment(
       maBenhNhan: _maBenhNhan,
       maBacSi: maBacSi,
       ngayHen: ngayHen,
@@ -121,7 +121,7 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
       _isLoading = false;
     });
 
-    if (success) {
+    if (errorMessage == null) {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -156,8 +156,8 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Lỗi: Không thể kết nối tới máy chủ. Vui lòng thử lại sau."),
+        SnackBar(
+          content: Text("Lỗi: $errorMessage"),
           backgroundColor: Colors.red,
         ),
       );

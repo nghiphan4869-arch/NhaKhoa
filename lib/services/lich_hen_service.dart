@@ -38,8 +38,25 @@ class LichHenService {
     }
   }
 
+  /// Lấy danh sách lịch hẹn của bác sĩ
+  static Future<List<dynamic>> getAppointmentsByDoctor(int maBacSi) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/bacsi/$maBacSi'),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as List<dynamic>;
+      }
+      return [];
+    } catch (e) {
+      print('Lỗi lấy danh sách lịch hẹn bác sĩ: $e');
+      return [];
+    }
+  }
+
   /// Đặt lịch hẹn mới
-  static Future<bool> createAppointment({
+  static Future<String?> createAppointment({
     required int maBenhNhan,
     required int maBacSi,
     required String ngayHen,
@@ -62,11 +79,33 @@ class LichHenService {
       );
 
       if (response.statusCode == 200) {
+        return null; // Thành công
+      } else {
+        try {
+          final data = jsonDecode(utf8.decode(response.bodyBytes));
+          return data['message'] ?? data['error'] ?? 'Đặt lịch thất bại';
+        } catch (_) {
+          return 'Lỗi xử lý phản hồi từ server';
+        }
+      }
+    } catch (e) {
+      print('Lỗi đặt lịch hẹn: $e');
+      return 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.';
+    }
+  }
+
+  /// Hủy lịch hẹn
+  static Future<bool> cancelAppointment(int maLichHen) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/huy/$maLichHen'),
+      );
+      if (response.statusCode == 200) {
         return true;
       }
       return false;
     } catch (e) {
-      print('Lỗi đặt lịch hẹn: $e');
+      print('Lỗi hủy lịch hẹn: $e');
       return false;
     }
   }

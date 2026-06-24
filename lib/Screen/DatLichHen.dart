@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nhakhoa/Screen/XacNhanLichHen.dart';
 import 'package:nhakhoa/services/lich_hen_service.dart';
 
@@ -66,12 +67,142 @@ class _DatLichHen extends State<DatLichHen> {
     }).toList();
   }
 
-  int selectedDate = 0;
   int startIndex = 0;
   int minStartIndex = 0;
 
-  late DateTime monday;
-  late List<DateTime> weekDays;
+  List<dynamic> _doctorAppointments = [];
+  bool _isLoadingAppointments = false;
+  List<dynamic> _patientAppointments = [];
+  bool _isLoadingPatientAppointments = false;
+
+  Future<void> _loadDoctorAppointments() async {
+    setState(() {
+      _isLoadingAppointments = true;
+    });
+    try {
+      final doctorId = selectedDoctor == 0 ? 1 : (selectedDoctor == 1 ? 3 : 4);
+      final list = await LichHenService.getAppointmentsByDoctor(doctorId);
+      setState(() {
+        _doctorAppointments = list;
+      });
+    } catch (e) {
+      print('Lỗi tải lịch hẹn bác sĩ: $e');
+    } finally {
+      setState(() {
+        _isLoadingAppointments = false;
+      });
+    }
+  }
+
+  Future<void> _loadPatientAppointments() async {
+    setState(() {
+      _isLoadingPatientAppointments = true;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final maBenhNhan = prefs.getInt('maBenhNhan') ?? 0;
+      if (maBenhNhan > 0) {
+        final list = await LichHenService.getAppointmentsByPatient(maBenhNhan);
+        setState(() {
+          _patientAppointments = list;
+        });
+      }
+    } catch (e) {
+      print('Lỗi tải lịch hẹn bệnh nhân: $e');
+    } finally {
+      setState(() {
+        _isLoadingPatientAppointments = false;
+      });
+      _updateSelectedTime();
+    }
+  }
+
+  int _timeToMinutes(String timeStr) {
+    final parts = timeStr.split(':');
+    if (parts.length < 2) return 0;
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    return hour * 60 + minute;
+  }
+
+  bool _isTimeSlotBlocked(String timeSlot) {
+    if (selectedService == null) return false;
+
+    final slotStart = _timeToMinutes(timeSlot);
+    final selectedDuration = serviceDurations[selectedService!] ?? 30;
+    final slotEnd = slotStart + selectedDuration;
+
+    final selectedDateOnly = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+
+    // 1. Kiểm tra trùng lịch của Bác sĩ (tính cả lịch chờ duyệt và đã duyệt)
+    for (var app in _doctorAppointments) {
+      final status = app['TrangThai'];
+      if (status == 'DaHuy') {
+        continue;
+      }
+
+      try {
+        final appDate = DateTime.parse(app['NgayHen']).toLocal();
+        final appDateOnly = DateTime(appDate.year, appDate.month, appDate.day);
+        if (!appDateOnly.isAtSameMomentAs(selectedDateOnly)) {
+          continue;
+        }
+      } catch (e) {
+        continue;
+      }
+
+      final appStart = _timeToMinutes(app['GioHen'] ?? '');
+      final lyDoKham = app['LyDoKham'] ?? '';
+      final serviceName = lyDoKham.split(':')[0].trim();
+      final appDuration = serviceDurations[serviceName] ?? 30;
+      final appEnd = appStart + appDuration;
+
+      if (slotStart < appEnd && appStart < slotEnd) {
+        return true;
+      }
+    }
+
+    // 2. Kiểm tra trùng lịch của chính Bệnh nhân (tính cả lịch chờ duyệt và đã duyệt)
+    for (var app in _patientAppointments) {
+      final status = app['TrangThai'];
+      if (status == 'DaHuy') {
+        continue;
+      }
+
+      try {
+        final appDate = DateTime.parse(app['NgayHen']).toLocal();
+        final appDateOnly = DateTime(appDate.year, appDate.month, appDate.day);
+        if (!appDateOnly.isAtSameMomentAs(selectedDateOnly)) {
+          continue;
+        }
+      } catch (e) {
+        continue;
+      }
+
+      final appStart = _timeToMinutes(app['GioHen'] ?? '');
+      final lyDoKham = app['LyDoKham'] ?? '';
+      final serviceName = lyDoKham.split(':')[0].trim();
+      final appDuration = serviceDurations[serviceName] ?? 30;
+      final appEnd = appStart + appDuration;
+
+      if (slotStart < appEnd && appStart < slotEnd) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  void _updateSelectedTime() {
+    final validTimes = _filteredTimes;
+    final availableTimes = validTimes.where((time) => !_isTimeSlotBlocked(time)).toList();
+
+    if (!availableTimes.contains(selectedTime)) {
+      setState(() {
+        selectedTime = availableTimes.isNotEmpty ? availableTimes.first : '';
+      });
+    }
+  }
 
   List<DateTime> get dates {
     final now = DateTime.now();
@@ -79,11 +210,23 @@ class _DatLichHen extends State<DatLichHen> {
       Duration(days: now.weekday - 1),
     );
     return List.generate(
-      365,
+      450,
       (index) => currentMonday.add(
         Duration(days: index),
       ),
-    );
+    ).where((date) => date.weekday != DateTime.sunday).toList();
+  }
+
+  int _getWeekStartIndex(DateTime date) {
+    final list = dates;
+    for (int i = 0; i < list.length; i++) {
+      if (list[i].day == date.day &&
+          list[i].month == date.month &&
+          list[i].year == date.year) {
+        return (i / 6).floor() * 6;
+      }
+    }
+    return 0;
   }
 
   late DateTime selectedDay;
@@ -120,21 +263,19 @@ class _DatLichHen extends State<DatLichHen> {
   void initState() {
     super.initState();
     _loadServices();
+    _loadDoctorAppointments();
+    _loadPatientAppointments();
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
+    DateTime tomorrow = today.add(const Duration(days: 1));
+    if (tomorrow.weekday == DateTime.sunday) {
+      tomorrow = tomorrow.add(const Duration(days: 1));
+    }
     selectedDay = tomorrow;
 
-    monday = now.subtract(
-      Duration(days: now.weekday - 1),
-    );
-    final currentMonday = today.subtract(Duration(days: today.weekday - 1));
-    final differenceInDays = tomorrow.difference(currentMonday).inDays;
-    minStartIndex = (differenceInDays / 7).floor() * 7;
+    minStartIndex = _getWeekStartIndex(tomorrow);
     startIndex = minStartIndex;
-
-    _loadWeek();
   }
 
   Future<void> _loadServices() async {
@@ -151,11 +292,7 @@ class _DatLichHen extends State<DatLichHen> {
           }
           selectedService = _services.first['TenDichVu'];
           _isLoadingServices = false;
-
-          final validTimes = _filteredTimes;
-          if (!validTimes.contains(selectedTime)) {
-            selectedTime = validTimes.isNotEmpty ? validTimes.first : '';
-          }
+          _updateSelectedTime();
         });
       } else {
         _loadFallbackServices();
@@ -177,22 +314,11 @@ class _DatLichHen extends State<DatLichHen> {
       _services = serviceDurations.keys.map((k) => {'TenDichVu': k, 'ThoiGian': serviceDurations[k]}).toList();
       selectedService = "Khám tổng quát";
       _isLoadingServices = false;
-
-      final validTimes = _filteredTimes;
-      if (!validTimes.contains(selectedTime)) {
-        selectedTime = validTimes.isNotEmpty ? validTimes.first : '';
-      }
+      _updateSelectedTime();
     });
   }
 
-  void _loadWeek() {
-    weekDays = List.generate(
-      7,
-      (index) => monday.add(
-        Duration(days: index),
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -250,6 +376,9 @@ class _DatLichHen extends State<DatLichHen> {
                       setState(() {
                         selectedDoctor = index;
                       });
+                      _loadDoctorAppointments().then((_) {
+                        _updateSelectedTime();
+                      });
                     },
                     child: Container(
                       height: 100,
@@ -306,10 +435,7 @@ class _DatLichHen extends State<DatLichHen> {
                     onChanged: (value) {
                       setState(() {
                         selectedService = value!;
-                        final validTimes = _filteredTimes;
-                        if (!validTimes.contains(selectedTime)) {
-                          selectedTime = validTimes.isNotEmpty ? validTimes.first : '';
-                        }
+                        _updateSelectedTime();
                       });
                     },
                   ),
@@ -336,7 +462,7 @@ class _DatLichHen extends State<DatLichHen> {
                     onPressed: startIndex > minStartIndex
                         ? () {
                             setState(() {
-                              startIndex -= 7;
+                              startIndex -= 6;
                               if (startIndex < minStartIndex) startIndex = minStartIndex;
                             });
                           }
@@ -355,7 +481,7 @@ class _DatLichHen extends State<DatLichHen> {
                     height: 70,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(7, (index) {
+                      children: List.generate(6, (index) {
                         final date = dates[startIndex + index];
                         bool isDisabled = _isDateDisabled(date);
                         bool selected = !isDisabled &&
@@ -370,6 +496,7 @@ class _DatLichHen extends State<DatLichHen> {
                                 : () {
                                     setState(() {
                                       selectedDay = date;
+                                      _updateSelectedTime();
                                     });
                                   },
                             child: Container(
@@ -435,7 +562,7 @@ class _DatLichHen extends State<DatLichHen> {
                     constraints: const BoxConstraints(),
                     onPressed: () {
                       setState(() {
-                        startIndex += 7;
+                        startIndex += 6;
                       });
                     },
                     icon: const Icon(
@@ -457,35 +584,38 @@ class _DatLichHen extends State<DatLichHen> {
               runSpacing: 8,
               children: _filteredTimes.map((time) {
                 bool selected = selectedTime == time;
+                bool isBlocked = _isTimeSlotBlocked(time);
 
                 return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedTime = time;
-                    });
-                  },
+                  onTap: isBlocked
+                      ? null
+                      : () {
+                          setState(() {
+                            selectedTime = time;
+                          });
+                        },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: selected
-                          ? Colors.blue
-                          : Colors.white,
+                      color: isBlocked
+                          ? Colors.grey.shade100
+                          : (selected ? Colors.blue : Colors.white),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: selected
-                            ? Colors.blue
-                            : Colors.grey.shade300,
+                        color: isBlocked
+                            ? Colors.grey.shade200
+                            : (selected ? Colors.blue : Colors.grey.shade300),
                       ),
                     ),
                     child: Text(
                       time,
                       style: TextStyle(
-                        color: selected
-                            ? Colors.white
-                            : Colors.black,
+                        color: isBlocked
+                            ? Colors.grey.shade400
+                            : (selected ? Colors.white : Colors.black),
                       ),
                     ),
                   ),

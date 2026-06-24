@@ -48,11 +48,11 @@ class _DangKyState extends State<DangKy> {
       return;
     }
 
-    final RegExp emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+    final RegExp emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@gmail\.com$");
     if (!emailRegex.hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Email không đúng định dạng'),
+          content: Text('Email không đúng định dạng (phải là @gmail.com)'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -261,7 +261,7 @@ class _DangKyState extends State<DangKy> {
 
                         _buildTextField(
                           label: "Email",
-                          hint: "Nhập email",
+                          hint: "Nhập email (ví dụ: name@gmail.com)",
                           icon: Icons.email_outlined,
                           controller: txtEmail,
                         ),

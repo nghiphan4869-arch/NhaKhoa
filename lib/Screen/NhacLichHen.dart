@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nhakhoa/services/lich_hen_service.dart';
 import '../widgets/bottom_nav.dart';
 
 class NhacLich extends StatefulWidget {
@@ -9,7 +11,137 @@ class NhacLich extends StatefulWidget {
 }
 
 class _NhacLichState extends State<NhacLich> {
-  int selectedTab = 0; // 0:Tất cả, 1:Sắp tới, 2:Đã qua
+  int selectedTab = 0; // 0: Tất cả, 1: Sắp tới, 2: Đã qua
+  List<dynamic> _appointments = [];
+  bool _isLoading = true;
+  int? _maBenhNhan;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppointments();
+  }
+
+  Future<void> _loadAppointments() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final maBn = prefs.getInt('maBenhNhan');
+      if (maBn != null && maBn > 0) {
+        _maBenhNhan = maBn;
+        final list = await LichHenService.getAppointmentsByPatient(maBn);
+        setState(() {
+          _appointments = list;
+        });
+      } else {
+        setState(() {
+          _maBenhNhan = null;
+        });
+      }
+    } catch (e) {
+      print('Lỗi tải lịch hẹn nhắc lịch: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _getDoctorName(int maBacSi) {
+    switch (maBacSi) {
+      case 1:
+        return "BS. Trần Thùy Dương";
+      case 3:
+        return "BS. Nguyễn Văn A";
+      case 4:
+        return "BS. Lê Thị B";
+      default:
+        return "Bác sĩ Nha Khoa";
+    }
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final dt = DateTime.parse(dateStr).toLocal();
+      return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  String _formatTime(String timeStr) {
+    if (timeStr.length >= 5) {
+      return timeStr.substring(0, 5);
+    }
+    return timeStr;
+  }
+
+  List<dynamic> get _upcomingAppointments {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return _appointments.where((app) {
+      if (app['TrangThai'] == 'DaHuy') return false;
+      try {
+        final ngayHenStr = app['NgayHen'];
+        if (ngayHenStr == null) return false;
+        final dt = DateTime.parse(ngayHenStr).toLocal();
+        final appointmentDay = DateTime(dt.year, dt.month, dt.day);
+        return appointmentDay.isAfter(today) || appointmentDay.isAtSameMomentAs(today);
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+  }
+
+  List<dynamic> get _pastAppointments {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return _appointments.where((app) {
+      if (app['TrangThai'] == 'DaHuy') return true;
+      try {
+        final ngayHenStr = app['NgayHen'];
+        if (ngayHenStr == null) return true;
+        final dt = DateTime.parse(ngayHenStr).toLocal();
+        final appointmentDay = DateTime(dt.year, dt.month, dt.day);
+        return appointmentDay.isBefore(today);
+      } catch (e) {
+        return true;
+      }
+    }).toList();
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'ChoDuyet':
+        return 'chờ duyệt';
+      case 'DaXacNhan':
+      case 'DaDuyet':
+        return 'đã xác nhận';
+      case 'ChoKham':
+        return 'chờ khám';
+      case 'DaHuy':
+        return 'đã hủy';
+      default:
+        return 'chờ duyệt';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'ChoDuyet':
+        return Colors.orange;
+      case 'DaXacNhan':
+      case 'DaDuyet':
+      case 'ChoKham':
+        return Colors.blue;
+      case 'DaHuy':
+        return Colors.red;
+      default:
+        return Colors.blue;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,135 +149,146 @@ class _NhacLichState extends State<NhacLich> {
       backgroundColor: const Color(0xfff5f5f5),
 
       body: SafeArea(
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                /// TIÊU ĐỀ
-                const Text(
-                  "Nhắc lịch hẹn",
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _maBenhNhan == null
+                ? const Center(
+                    child: Text(
+                      "Vui lòng đăng nhập để xem nhắc lịch",
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadAppointments,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          /// TIÊU ĐỀ
+                          const Text(
+                            "Nhắc lịch hẹn",
+                            style: TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
 
-                const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                /// TAB
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTab(
-                        "Tất cả",
-                        0,
+                          /// TAB
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTab(
+                                  "Tất cả",
+                                  0,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _buildTab(
+                                  "Sắp tới",
+                                  1,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _buildTab(
+                                  "Đã qua",
+                                  2,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 25),
+
+                          /// LỊCH HẸN SẮP TỚI
+                          if (selectedTab == 0 || selectedTab == 1) ...[
+                            const Text(
+                              "Sắp tới",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                            _upcomingAppointments.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 10),
+                                    child: Text(
+                                      "Chưa có lịch hẹn sắp tới nào",
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  )
+                                : Column(
+                                    children: _upcomingAppointments.map((app) {
+                                      final doctorName = _getDoctorName(app['MaBacSi'] ?? 1);
+                                      final statusLabel = _getStatusLabel(app['TrangThai'] ?? '');
+                                      final color = _getStatusColor(app['TrangThai'] ?? '');
+                                      final dateText = _formatDate(app['NgayHen']);
+                                      final timeText = _formatTime(app['GioHen']);
+                                      
+                                      return _buildAppointmentCard(
+                                        title: "Lịch hẹn sắp tới ($statusLabel)",
+                                        description: "Bạn có lịch hẹn với $doctorName vào lúc $timeText ngày $dateText.",
+                                        time: timeText,
+                                        date: dateText,
+                                        color: color,
+                                      );
+                                    }).toList(),
+                                  ),
+                            const SizedBox(height: 25),
+                          ],
+
+                          /// LỊCH HẸN ĐÃ QUA
+                          if (selectedTab == 0 || selectedTab == 2) ...[
+                            const Text(
+                              "Đã qua",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                            _pastAppointments.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 10),
+                                    child: Text(
+                                      "Chưa có lịch hẹn nào đã qua",
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  )
+                                : Column(
+                                    children: _pastAppointments.map((app) {
+                                      final doctorName = _getDoctorName(app['MaBacSi'] ?? 1);
+                                      final statusLabel = _getStatusLabel(app['TrangThai'] ?? '');
+                                      final color = _getStatusColor(app['TrangThai'] ?? '');
+                                      final dateText = _formatDate(app['NgayHen']);
+                                      final timeText = _formatTime(app['GioHen']);
+                                      
+                                      return _buildAppointmentCard(
+                                        title: "Lịch hẹn $statusLabel",
+                                        description: "Lịch hẹn với $doctorName vào lúc $timeText ngày $dateText.",
+                                        time: timeText,
+                                        date: dateText,
+                                        color: color,
+                                      );
+                                    }).toList(),
+                                  ),
+                          ],
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildTab(
-                        "Sắp tới",
-                        1,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildTab(
-                        "Đã qua",
-                        2,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 25),
-
-                /// SẮP TỚI
-                const Text(
-                  "Sắp tới",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
                   ),
-                ),
-
-                const SizedBox(height: 15),
-
-                _buildAppointmentCard(
-                  title: "Lịch hẹn sắp tới",
-                  description:
-                      "Bạn có lịch hẹn với BS. ABC vào 15:30 hôm nay",
-                  time: "15:30",
-                  date: "Hôm nay",
-                  color: Colors.blue,
-                ),
-
-                _buildAppointmentCard(
-                  title: "Lịch hẹn sắp tới",
-                  description:
-                      "Bạn có lịch hẹn với BS. ABC vào 15:00 ngày mai",
-                  time: "15:00",
-                  date: "Ngày mai",
-                  color: Colors.blue,
-                ),
-
-                _buildAppointmentCard(
-                  title: "Lịch hẹn sắp tới",
-                  description:
-                      "Bạn có lịch hẹn với BS. ABC vào 10:00 05/06/2026",
-                  time: "10:00",
-                  date: "05/06/2026",
-                  color: Colors.blue,
-                ),
-
-                const SizedBox(height: 25),
-
-                /// ĐÃ QUA
-                const Text(
-                  "Đã qua",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 15),
-
-                _buildAppointmentCard(
-                  title: "Lịch hẹn đã hoàn thành",
-                  description:
-                      "Bạn đã khám với BS.ABC vào 10:00 ngày 10/05/2026",
-                  time: "10:00",
-                  date: "10/05/2026",
-                  color: Colors.blue,
-                ),
-
-                _buildAppointmentCard(
-                  title: "Lịch hẹn đã hoàn thành",
-                  description:
-                      "Bạn đã khám với BS.ABC vào 10:00 ngày 10/05/2026",
-                  time: "10:00",
-                  date: "10/05/2026",
-                  color: Colors.blue,
-                ),
-
-                _buildAppointmentCard(
-                  title: "Lịch hẹn đã hoàn thành",
-                  description:
-                      "Bạn đã khám với BS.ABC vào 10:00 ngày 10/05/2026",
-                  time: "10:00",
-                  date: "10/05/2026",
-                  color: Colors.blue,
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
 
       bottomNavigationBar: const BottomNav(
@@ -208,8 +351,7 @@ class _NhacLichState extends State<NhacLich> {
         ),
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.event_note,
@@ -220,15 +362,13 @@ class _NhacLichState extends State<NhacLich> {
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
                   style: const TextStyle(
                     fontSize: 18,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
 
@@ -245,15 +385,13 @@ class _NhacLichState extends State<NhacLich> {
           ),
 
           Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 time,
                 style: TextStyle(
                   color: color,
-                  fontWeight:
-                      FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
