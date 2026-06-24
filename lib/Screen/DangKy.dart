@@ -48,6 +48,48 @@ class _DangKyState extends State<DangKy> {
       return;
     }
 
+    final RegExp emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email không đúng định dạng'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final RegExp phoneRegex = RegExp(r'^0[0-9]{9}$');
+    if (!phoneRegex.hasMatch(sdt)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Số điện thoại không hợp lệ (phải gồm 10 chữ số và bắt đầu bằng số 0)'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (matKhau.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mật khẩu phải tối thiểu 6 ký tự'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (matKhau.contains(' ')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mật khẩu không được chứa khoảng trắng'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     if (matKhau != confirmMatKhau) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

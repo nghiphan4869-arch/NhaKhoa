@@ -331,7 +331,11 @@ class _DoiMatKhauState extends State<DoiMatKhau> {
                             }
 
                             if(value.length < 6){
-                              return "Tối thiểu 6 ký tự";
+                              return "Mật khẩu phải tối thiểu 6 ký tự";
+                            }
+
+                            if(value.contains(' ')){
+                              return "Mật khẩu không được chứa khoảng trắng";
                             }
 
                             return null;
