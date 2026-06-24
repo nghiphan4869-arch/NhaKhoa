@@ -9,7 +9,7 @@ class HomeHeader extends StatelessWidget {
   Future<String> _getHoTen() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('hoTen') ?? 'Khách';
-  }
+  }   
 
   @override
   Widget build(BuildContext context) {

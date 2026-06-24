@@ -28,7 +28,7 @@ class TrangChu extends StatelessWidget {
           child: Column(    
             children: [
 
-              const HomeHeader(),
+                const HomeHeader(),
 
               const SizedBox(height: 20),
 
