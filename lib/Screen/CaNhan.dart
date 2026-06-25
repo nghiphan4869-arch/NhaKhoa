@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nhakhoa/Screen/HoSoBenhNhan.dart';
 import 'package:nhakhoa/Screen/NhacLichHen.dart';
 import '../widgets/bottom_nav.dart';
 import 'package:nhakhoa/Screen/Dangnhap.dart';
@@ -167,10 +168,57 @@ class CaNhan extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     /// HỒ SƠ BỆNH NHÂN
-                    _buildSectionTitle(
-                      Icons.person_outline,
-                      Colors.blue,
-                      "Hồ sơ bệnh nhân",
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                "Hồ sơ bệnh nhân",
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => HoSoBenhNhan(),
+                                ),
+                              );
+                            },
+                            child: const Row(
+                              children: [
+                                Text(
+                                  "Xem chi tiết",
+                                  style: TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(width: 4),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.blue,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     Container(
@@ -197,12 +245,12 @@ class CaNhan extends StatelessWidget {
                             gioiTinh,
                           ),
                           _buildInfoRow(
-                            "Nhóm máu",
-                            "O",
-                          ),
-                          _buildInfoRow(
                             "Địa chỉ",
                             diaChi,
+                          ),
+                          _buildInfoRow(
+                            "Ghi chú",
+                            "chưa có",
                           ),
                         ],
                       ),

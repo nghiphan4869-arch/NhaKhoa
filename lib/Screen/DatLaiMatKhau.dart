@@ -210,23 +210,7 @@ class _DatLaiMatKhauState
                               ],
                             ),
 
-                            SizedBox(height: 8),
 
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons
-                                      .check_circle,
-                                  color:
-                                      Colors.green,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  "Có chữ hoa, chữ thường và số",
-                                ),
-                              ],
-                            ),
 
                             SizedBox(height: 8),
 

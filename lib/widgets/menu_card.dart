@@ -17,22 +17,44 @@ class MenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(15),
+      child: GestureDetector(
         onTap: onTap,
+
         child: Container(
-          padding: const EdgeInsets.all(15),
+          height: 110, 
+          padding: const EdgeInsets.all(14),
+
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(18),
           ),
+
           child: Column(
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+
             children: [
-              Icon(icon),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                textAlign: TextAlign.center,
+
+              Icon(
+                icon,
+                size: 35,
+                color: Colors.black87,
+              ),
+
+              const SizedBox(height: 12),
+
+              Expanded(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ],
           ),

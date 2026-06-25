@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nhakhoa/Screen/CapNhatTinhTrang.dart';
 import 'package:nhakhoa/Screen/DatLichHen.dart';
 import 'package:nhakhoa/Screen/DieuTri.dart';
 import 'package:nhakhoa/Screen/DonThuoc.dart';
@@ -175,6 +176,14 @@ class TrangChu extends StatelessWidget {
                     title: "Cập nhật tình trạng",
                     color:
                         const Color(0xffefe5d8),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CapNhatTinhTrang(),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(width: 10),
                   MenuCard(
