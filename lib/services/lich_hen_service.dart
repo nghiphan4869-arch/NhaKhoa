@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'api_config.dart';
 
 class LichHenService {
-  static const String baseUrl = 'http://10.0.2.2:3000/api/lich-hen';
+  static const String baseUrl = ApiConfig.lichHenUrl;
 
   /// Lấy danh sách dịch vụ hoạt động
   static Future<List<dynamic>> getServices() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:3000/api/dich-vu'),
+        Uri.parse(ApiConfig.dichVuUrl),
       );
 
       if (response.statusCode == 200) {

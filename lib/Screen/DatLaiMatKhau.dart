@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:nhakhoa/services/auth_service.dart';
 
 class DatLaiMatKhau extends StatefulWidget {
-  const DatLaiMatKhau({super.key});
+  final String emailOrPhone;
+
+  const DatLaiMatKhau({
+    super.key,
+    required this.emailOrPhone,
+  });
 
   @override
   State<DatLaiMatKhau> createState() =>
@@ -10,8 +16,96 @@ class DatLaiMatKhau extends StatefulWidget {
 
 class _DatLaiMatKhauState
     extends State<DatLaiMatKhau> {
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  
   bool hidePassword = true;
   bool hideConfirmPassword = true;
+  bool _isLoading = false;
+
+  void _submitReset() async {
+    final password = _newPasswordController.text;
+    final confirm = _confirmPasswordController.text;
+
+    if (password.isEmpty || confirm.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu tối thiểu phải từ 6 ký tự trở lên')),
+      );
+      return;
+    }
+
+    if (password.contains(' ')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu không được chứa khoảng trắng')),
+      );
+      return;
+    }
+
+    if (password != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu xác nhận không khớp')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final success = await AuthService.resetPassword(widget.emailOrPhone, password);
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đổi mật khẩu thành công!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Quay về màn hình đầu tiên (Login)
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đặt lại mật khẩu thất bại. Vui lòng thử lại sau.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi kết nối máy chủ: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +200,7 @@ class _DatLaiMatKhauState
                     children: [
                       /// Mật khẩu mới
                       TextField(
+                        controller: _newPasswordController,
                         obscureText: hidePassword,
                         decoration: InputDecoration(
                           labelText:
@@ -142,6 +237,7 @@ class _DatLaiMatKhauState
 
                       /// Xác nhận mật khẩu
                       TextField(
+                        controller: _confirmPasswordController,
                         obscureText:
                             hideConfirmPassword,
                         decoration: InputDecoration(
@@ -255,16 +351,23 @@ class _DatLaiMatKhauState
                                 .circular(12),
                       ),
                     ),
-                    onPressed: () {
-                      // API đổi mật khẩu
-                    },
-                    child: const Text(
-                      "Đổi mật khẩu",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                      ),
-                    ),
+                    onPressed: _isLoading ? null : _submitReset,
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            "Đổi mật khẩu",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ],
