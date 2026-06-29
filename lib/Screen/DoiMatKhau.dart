@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import 'DangNhap.dart';
+import 'XacNhanMatKhauMoi.dart';
 
 class DoiMatKhau extends StatefulWidget {
   const DoiMatKhau({super.key});
@@ -125,7 +126,14 @@ class _DoiMatKhauState extends State<DoiMatKhau> {
                 ),
                 onPressed: () {
                   Navigator.pop(ctx); // Đóng dialog
-                  Navigator.pop(context); // Trở về màn hình trước đó (Cá nhân)
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => XacNhanMatKhauMoi(
+                        newPassword: newPw,
+                      ),
+                    ),
+                  );
                 },
                 child: const Text(
                   "Đồng ý",

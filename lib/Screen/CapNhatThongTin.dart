@@ -1,61 +1,154 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:nhakhoa/Screen/HoSoBenhNhan.dart';
+import 'package:http/http.dart' as http;
+import 'package:nhakhoa/services/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CapNhatThongTin extends StatefulWidget {
-  const CapNhatThongTin({super.key});
+  final Map<String, dynamic>? patientData;
+  const CapNhatThongTin({super.key, this.patientData});
 
   @override
-  State<CapNhatThongTin> createState() =>
-      _CapNhatThongTinState();
+  State<CapNhatThongTin> createState() => _CapNhatThongTinState();
 }
 
-class _CapNhatThongTinState
-    extends State<CapNhatThongTin> {
-
-  final hoTenController =
-      TextEditingController(text: "Phan C");
-
-  final sdtController =
-      TextEditingController(text: "0902691111");
-
-  final emailController =
-      TextEditingController(
-          text: "c@gmail.com");
-
-  final diaChiController =
-      TextEditingController();
-
-  final ngaySinhController =
-      TextEditingController();
-
+class _CapNhatThongTinState extends State<CapNhatThongTin> {
+  late final TextEditingController hoTenController;
+  late final TextEditingController sdtController;
+  late final TextEditingController emailController;
+  late final TextEditingController diaChiController;
+  late final TextEditingController ngaySinhController;
   String gioiTinh = "Nam";
+  bool _isSaving = false;
 
-  final ghiChuController =
-    TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo các controller với dữ liệu hiện tại (nếu có)
+    hoTenController = TextEditingController(text: widget.patientData?['HoTen'] ?? '');
+    sdtController = TextEditingController(text: widget.patientData?['SDT'] ?? '');
+    emailController = TextEditingController(text: widget.patientData?['Email'] ?? '');
+    diaChiController = TextEditingController(text: widget.patientData?['DiaChi'] ?? '');
+
+    String rawNgaySinh = widget.patientData?['NgaySinh'] ?? '';
+    if (rawNgaySinh.contains('T')) {
+      rawNgaySinh = rawNgaySinh.split('T')[0];
+    }
+    ngaySinhController = TextEditingController(text: rawNgaySinh);
+
+    final String rawGioiTinh = widget.patientData?['GioiTinh'] ?? 'Nam';
+    if (rawGioiTinh == "Nam" || rawGioiTinh == "Nữ") {
+      gioiTinh = rawGioiTinh;
+    } else {
+      gioiTinh = "Nam";
+    }
+  }
+
+  @override
+  void dispose() {
+    hoTenController.dispose();
+    sdtController.dispose();
+    emailController.dispose();
+    diaChiController.dispose();
+    ngaySinhController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveChanges() async {
+    final String hoTen = hoTenController.text.trim();
+    final String sdt = sdtController.text.trim();
+    final String email = emailController.text.trim();
+    final String diaChi = diaChiController.text.trim();
+    final String ngaySinh = ngaySinhController.text.trim();
+
+    if (hoTen.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng điền họ tên")),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final maBenhNhan = prefs.getInt('maBenhNhan') ?? 0;
+
+      if (maBenhNhan == 0) {
+        throw Exception("Không tìm thấy mã bệnh nhân");
+      }
+
+      final response = await http.put(
+        Uri.parse('${ApiConfig.benhNhanUrl}/$maBenhNhan'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'HoTen': hoTen,
+          'Email': email.isEmpty ? null : email,
+          'SDT': sdt,
+          'NgaySinh': ngaySinh.isEmpty ? null : ngaySinh,
+          'GioiTinh': gioiTinh,
+          'DiaChi': diaChi.isEmpty ? null : diaChi,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Cập nhật thông tin thành công")),
+          );
+          Navigator.pop(context, true); // Trả về true để reload trang trước
+        }
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Không thể cập nhật hồ sơ');
+      }
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            title: const Text('Lỗi cập nhật'),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          const Color(0xfff6f8fc),
-
+      backgroundColor: const Color(0xfff6f8fc),
       appBar: AppBar(
-        backgroundColor:
-            Colors.transparent,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-
         centerTitle: true,
-
         leading: IconButton(
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(context, false);
           },
           icon: const Icon(
             Icons.arrow_back_ios_new,
             color: Colors.black,
           ),
         ),
-
         title: const Text(
           "Cập nhật thông tin",
           style: TextStyle(
@@ -65,280 +158,142 @@ class _CapNhatThongTinState
           ),
         ),
       ),
-
       body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(16),
-
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
             /// Avatar
             Stack(
               clipBehavior: Clip.none,
               children: [
-
                 CircleAvatar(
                   radius: 55,
-                  backgroundColor:
-                      Colors.green.shade200,
-
+                  backgroundColor: Colors.blue.shade100,
                   child: const Icon(
                     Icons.person,
                     size: 65,
-                    color: Colors.white,
+                    color: Color(0xff4b5fb5),
                   ),
                 ),
-
                 Positioned(
                   bottom: -5,
                   right: -5,
-
                   child: Container(
-                    padding:
-                        const EdgeInsets.all(
-                            8),
-
-                    decoration:
-                        const BoxDecoration(
-                      color:
-                          Colors.white,
-                      shape:
-                          BoxShape.circle,
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
-
                     child: const Icon(
                       Icons.camera_alt,
-                      color:
-                          Colors.blue,
+                      color: Color(0xff4b5fb5),
                     ),
                   ),
                 )
               ],
             ),
+            const SizedBox(height: 30),
 
-            const SizedBox(
-                height: 30),
-
-            /// Form
+            /// Form nhập liệu
             Container(
-              padding:
-                  const EdgeInsets.all(
-                      20),
-
-              decoration:
-                  BoxDecoration(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius:
-                    BorderRadius
-                        .circular(
-                            25),
+                borderRadius: BorderRadius.circular(25),
               ),
-
               child: Column(
                 children: [
-
                   _textField(
                     "Họ tên",
                     Icons.person_outline,
                     hoTenController,
                   ),
-
-                  const SizedBox(
-                      height: 15),
-
+                  const SizedBox(height: 15),
                   _textField(
                     "Số điện thoại",
                     Icons.phone,
                     sdtController,
                   ),
-
-                  const SizedBox(
-                      height: 15),
-
+                  const SizedBox(height: 15),
                   _textField(
                     "Email",
                     Icons.email_outlined,
                     emailController,
                   ),
-
-                  const SizedBox(
-                      height: 15),
-
+                  const SizedBox(height: 15),
                   _textField(
                     "Địa chỉ",
                     Icons.location_on_outlined,
                     diaChiController,
                   ),
-
-                  const SizedBox(
-                      height: 15),
-
+                  const SizedBox(height: 15),
                   _textField(
-                    "Ngày sinh",
+                    "Ngày sinh (YYYY-MM-DD)",
                     Icons.calendar_today,
                     ngaySinhController,
                   ),
-
-                  const SizedBox(
-                      height: 15),
-
-                  DropdownButtonFormField(
+                  const SizedBox(height: 15),
+                  DropdownButtonFormField<String>(
                     value: gioiTinh,
-
-                    decoration:
-                        InputDecoration(
-                      labelText:
-                          "Giới tính",
-
-                      prefixIcon:
-                          const Icon(
-                        Icons.people,
-                      ),
-
-                      border:
-                          OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(
-                                15),
+                    decoration: InputDecoration(
+                      labelText: "Giới tính",
+                      prefixIcon: const Icon(Icons.people),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
                     ),
-
                     items: const [
                       DropdownMenuItem(
                         value: "Nam",
-                        child:
-                            Text("Nam"),
+                        child: Text("Nam"),
                       ),
                       DropdownMenuItem(
                         value: "Nữ",
-                        child:
-                            Text("Nữ"),
+                        child: Text("Nữ"),
                       ),
                     ],
-
                     onChanged: (value) {
                       setState(() {
-                        gioiTinh =
-                            value!;
+                        gioiTinh = value!;
                       });
                     },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(15),
-
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius:
-                          BorderRadius.circular(15),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                      ),
-                    ),
-
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-
-                      children: [
-
-                        const Row(
-                          children: [
-                            SizedBox(width: 8),
-                            Text(
-                              "Ghi chú",
-                              style: TextStyle(
-                                fontWeight:
-                                    FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        TextField(
-                          controller:
-                              ghiChuController,
-                          maxLines: 4,
-                          decoration:
-                              const InputDecoration(
-                            hintText:
-                                "Nhập ghi chú thêm...",
-                            border:
-                                InputBorder.none,
-                          ),
-                        )
-                      ],
-                    ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 30),
 
-            const SizedBox(
-                height: 30),
-
+            /// NÚT LƯU THAY ĐỔI
             SizedBox(
-              width:
-                  double.infinity,
+              width: double.infinity,
               height: 55,
-
-              child:
-                  ElevatedButton.icon(
-                style:
-                    ElevatedButton
-                        .styleFrom(
-                  backgroundColor:
-                      const Color(
-                          0xff1A73E8),
-
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius
-                            .circular(
-                                15),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff4b5fb5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
                 ),
-
-                onPressed: () {
-                  ScaffoldMessenger.of(
-                          context)
-                      .showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          "Cập nhật thành công"),
-                    ),
-                  );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const HoSoBenhNhan(),
-                    ),
-                  );
-                },
-
-                icon: const Icon(
-                  Icons.save_outlined,
-                  color:
-                      Colors.white,
-                ),
-
-                label: const Text(
-                  "Lưu thay đổi",
-                  style: TextStyle(
-                    color:
-                        Colors.white,
+                onPressed: _isSaving ? null : _saveChanges,
+                icon: _isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.save_outlined,
+                        color: Colors.white,
+                      ),
+                label: Text(
+                  _isSaving ? "Đang lưu..." : "Lưu thay đổi",
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 17,
-                    fontWeight:
-                        FontWeight
-                            .bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -356,19 +311,11 @@ class _CapNhatThongTinState
   ) {
     return TextField(
       controller: controller,
-
-      decoration:
-          InputDecoration(
+      decoration: InputDecoration(
         labelText: label,
-
-        prefixIcon:
-            Icon(icon),
-
-        border:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius
-                  .circular(15),
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
         ),
       ),
     );

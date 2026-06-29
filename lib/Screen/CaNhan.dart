@@ -317,7 +317,7 @@ class CaNhan extends StatelessWidget {
                       child: ElevatedButton(
                         style:
                             ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                          backgroundColor: const Color(0xff4b5fb5),
                           shape:
                               RoundedRectangleBorder(
                             borderRadius:
@@ -352,7 +352,7 @@ class CaNhan extends StatelessWidget {
 
                                   ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
+                                      backgroundColor: const Color(0xff4b5fb5),
                                     ),
                                     onPressed: () async {
                                       Navigator.pop(context);

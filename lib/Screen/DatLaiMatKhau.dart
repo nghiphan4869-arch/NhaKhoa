@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/services/auth_service.dart';
+import 'XacNhanMatKhauMoi.dart';
 
 class DatLaiMatKhau extends StatefulWidget {
   final String emailOrPhone;
@@ -69,8 +70,16 @@ class _DatLaiMatKhauState
               backgroundColor: Colors.green,
             ),
           );
-          // Quay về màn hình đầu tiên (Login)
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          // Chuyển sang trang nhập lại mật khẩu mới để xác thực
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => XacNhanMatKhauMoi(
+                newPassword: password,
+                emailOrPhone: widget.emailOrPhone,
+              ),
+            ),
+          );
         }
       } else {
         if (mounted) {
