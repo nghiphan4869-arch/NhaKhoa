@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/CaNhan.dart';
 import 'package:nhakhoa/Screen/NhacLichHen.dart';
+import 'package:nhakhoa/services/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
 
-  Future<String> _getHoTen() async {
+  Future<Map<String, String>> _getUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('hoTen') ?? 'Khách';
+    return {
+      'hoTen': prefs.getString('hoTen') ?? 'Khách',
+      'hinhAnh': prefs.getString('hinhAnh') ?? '',
+    };
   }   
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String>(
-      future: _getHoTen(),
+    return FutureBuilder<Map<String, String>>(
+      future: _getUserInfo(),
       builder: (context, snapshot) {
-        final hoTen = snapshot.data ?? '...';
+        final userInfo = snapshot.data ?? {};
+        final hoTen = userInfo['hoTen'] ?? '...';
+        final hinhAnh = userInfo['hinhAnh'] ?? '';
+        
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -92,14 +99,21 @@ class HomeHeader extends StatelessWidget {
                       ),
                     );
                   },
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 22,
-                    backgroundColor: Color(0xffd6df73),
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                    backgroundColor: const Color(0xffd6df73),
+                    backgroundImage: hinhAnh.isNotEmpty
+                        ? NetworkImage(hinhAnh.startsWith('http')
+                            ? hinhAnh
+                            : '${ApiConfig.domain}$hinhAnh')
+                        : null,
+                    child: hinhAnh.isEmpty
+                        ? const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 24,
+                          )
+                        : null,
                   ),
                 ),
               ],

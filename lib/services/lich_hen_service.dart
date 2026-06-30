@@ -79,7 +79,7 @@ class LichHenService {
         }),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return null; // Thành công
       } else {
         try {

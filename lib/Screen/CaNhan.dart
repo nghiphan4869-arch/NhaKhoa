@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/HoSoBenhNhan.dart';
 import 'package:nhakhoa/Screen/NhacLichHen.dart';
+import 'package:nhakhoa/services/api_config.dart';
 import '../widgets/bottom_nav.dart';
 import 'package:nhakhoa/Screen/Dangnhap.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,7 @@ class CaNhan extends StatelessWidget {
       'ngaySinh': prefs.getString('ngaySinh') ?? 'Chưa cập nhật',
       'gioiTinh': prefs.getString('gioiTinh') ?? 'Chưa cập nhật',
       'diaChi': prefs.getString('diaChi') ?? 'Chưa cập nhật',
+      'hinhAnh': prefs.getString('hinhAnh') ?? '',
     };
   }
 
@@ -105,15 +107,21 @@ class CaNhan extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          const CircleAvatar(
+                          CircleAvatar(
                             radius: 35,
-                            backgroundColor:
-                                Color(0xffd6df73),
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 35,
-                            ),
+                            backgroundColor: const Color(0xffd6df73),
+                            backgroundImage: userInfo['hinhAnh'] != null && userInfo['hinhAnh']!.isNotEmpty
+                                ? NetworkImage(userInfo['hinhAnh']!.startsWith('http')
+                                    ? userInfo['hinhAnh']!
+                                    : '${ApiConfig.domain}${userInfo['hinhAnh']}')
+                                : null,
+                            child: userInfo['hinhAnh'] == null || userInfo['hinhAnh']!.isEmpty
+                                ? const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 35,
+                                  )
+                                : null,
                           ),
 
                           const SizedBox(width: 12),

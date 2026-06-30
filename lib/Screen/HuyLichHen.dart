@@ -126,6 +126,8 @@ class _HuyLichHenState extends State<HuyLichHen> {
         return 'Chờ khám';
       case 'DaHuy':
         return 'Đã hủy';
+      case 'DaHetHan':
+        return 'Đã hết hạn';
       default:
         return 'Chờ duyệt';
     }
@@ -657,7 +659,14 @@ class _HuyLichHenState extends State<HuyLichHen> {
                                             _isLoading = false;
                                           });
 
+                                          if (!mounted) return;
+
                                           if (success) {
+                                            _showSuccessDialog();
+                                          } else {
+                                            _showFailureDialog();
+                                          }
+                                          if (false) {
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               const SnackBar(
                                                 content: Text(
@@ -666,7 +675,11 @@ class _HuyLichHenState extends State<HuyLichHen> {
                                                 backgroundColor: Colors.green,
                                               ),
                                             );
-                                            Navigator.pop(context); // Back to previous page
+                                            Future.delayed(const Duration(seconds: 2), () {
+                                              if (mounted) {
+                                                Navigator.pop(context);
+                                              }
+                                            });
                                           } else {
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               const SnackBar(
@@ -731,6 +744,72 @@ class _HuyLichHenState extends State<HuyLichHen> {
                 ],
               ),
             ),
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green),
+              SizedBox(width: 10),
+              Text(
+                "Th\u00e0nh c\u00f4ng",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text("Hu\u1ef7 l\u1ecbch h\u1eb9n th\u00e0nh c\u00f4ng."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                Navigator.pop(context);
+              },
+              child: const Text("\u0110\u1ed3ng \u00fd"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showFailureDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 10),
+              Text(
+                "Th\u1ea5t b\u1ea1i",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text("Kh\u00f4ng th\u1ec3 hu\u1ef7 l\u1ecbch h\u1eb9n. L\u1ecbch c\u00f3 th\u1ec3 \u0111\u00e3 \u0111\u01b0\u1ee3c duy\u1ec7t ho\u1eb7c hu\u1ef7."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text("\u0110\u00f3ng"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

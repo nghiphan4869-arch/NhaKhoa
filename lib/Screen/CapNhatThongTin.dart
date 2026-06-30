@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:nhakhoa/services/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,6 +22,8 @@ class _CapNhatThongTinState extends State<CapNhatThongTin> {
   late final TextEditingController ngaySinhController;
   String gioiTinh = "Nam";
   bool _isSaving = false;
+  File? _pickedImage;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -31,10 +35,24 @@ class _CapNhatThongTinState extends State<CapNhatThongTin> {
     diaChiController = TextEditingController(text: widget.patientData?['DiaChi'] ?? '');
 
     String rawNgaySinh = widget.patientData?['NgaySinh'] ?? '';
-    if (rawNgaySinh.contains('T')) {
-      rawNgaySinh = rawNgaySinh.split('T')[0];
+    String formattedNgaySinh = '';
+    if (rawNgaySinh.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(rawNgaySinh).toLocal();
+        formattedNgaySinh = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+      } catch (_) {
+        if (rawNgaySinh.contains('T')) {
+          rawNgaySinh = rawNgaySinh.split('T')[0];
+        }
+        final parts = rawNgaySinh.split('-');
+        if (parts.length == 3) {
+          formattedNgaySinh = '${parts[2]}/${parts[1]}/${parts[0]}';
+        } else {
+          formattedNgaySinh = rawNgaySinh;
+        }
+      }
     }
-    ngaySinhController = TextEditingController(text: rawNgaySinh);
+    ngaySinhController = TextEditingController(text: formattedNgaySinh);
 
     final String rawGioiTinh = widget.patientData?['GioiTinh'] ?? 'Nam';
     if (rawGioiTinh == "Nam" || rawGioiTinh == "Nữ") {
@@ -54,12 +72,116 @@ class _CapNhatThongTinState extends State<CapNhatThongTin> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Text(
+                    'Cập nhật ảnh đại diện',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xff4b5fb5)),
+                title: const Text('Chọn ảnh từ thư viện'),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                  if (image != null) {
+                    setState(() {
+                      _pickedImage = File(image.path);
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera, color: Color(0xff4b5fb5)),
+                title: const Text('Chụp ảnh mới bằng camera'),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                  if (image != null) {
+                    setState(() {
+                      _pickedImage = File(image.path);
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    DateTime initialDate = DateTime.now();
+    
+    // Thử parse ngày sinh hiện tại nếu hợp lệ
+    final String currentText = ngaySinhController.text.trim();
+    if (currentText.isNotEmpty) {
+      try {
+        final parts = currentText.split('/');
+        if (parts.length == 3) {
+          initialDate = DateTime(
+            int.parse(parts[2]),
+            int.parse(parts[1]),
+            int.parse(parts[0]),
+          );
+        }
+      } catch (_) {
+        // Bỏ qua nếu parse lỗi
+      }
+    }
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      locale: const Locale('vi', 'VN'),
+    );
+
+    if (picked != null) {
+      setState(() {
+        ngaySinhController.text =
+            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      });
+    }
+  }
+
   Future<void> _saveChanges() async {
     final String hoTen = hoTenController.text.trim();
     final String sdt = sdtController.text.trim();
     final String email = emailController.text.trim();
     final String diaChi = diaChiController.text.trim();
-    final String ngaySinh = ngaySinhController.text.trim();
+    final String ngaySinhRaw = ngaySinhController.text.trim();
+    String ngaySinh = '';
+    if (ngaySinhRaw.isNotEmpty) {
+      final parts = ngaySinhRaw.split('/');
+      if (parts.length == 3) {
+        ngaySinh = '${parts[2]}-${parts[1]}-${parts[0]}';
+      } else {
+        ngaySinh = ngaySinhRaw;
+      }
+    }
 
     if (hoTen.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,6 +200,26 @@ class _CapNhatThongTinState extends State<CapNhatThongTin> {
 
       if (maBenhNhan == 0) {
         throw Exception("Không tìm thấy mã bệnh nhân");
+      }
+
+      // Upload avatar nếu có ảnh mới
+      if (_pickedImage != null) {
+        final uploadRequest = http.MultipartRequest(
+          'POST',
+          Uri.parse('${ApiConfig.benhNhanUrl}/$maBenhNhan/upload-avatar'),
+        );
+        uploadRequest.files.add(
+          await http.MultipartFile.fromPath(
+            'avatar',
+            _pickedImage!.path,
+          ),
+        );
+        final streamedResponse = await uploadRequest.send();
+        final uploadResponse = await http.Response.fromStream(streamedResponse);
+        if (uploadResponse.statusCode != 200 && uploadResponse.statusCode != 201) {
+          final errorData = jsonDecode(uploadResponse.body);
+          throw Exception(errorData['message'] ?? 'Không thể upload ảnh đại diện');
+        }
       }
 
       final response = await http.put(
@@ -163,34 +305,53 @@ class _CapNhatThongTinState extends State<CapNhatThongTin> {
         child: Column(
           children: [
             /// Avatar
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CircleAvatar(
-                  radius: 55,
-                  backgroundColor: Colors.blue.shade100,
-                  child: const Icon(
-                    Icons.person,
-                    size: 65,
-                    color: Color(0xff4b5fb5),
+            GestureDetector(
+              onTap: _pickImage,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 55,
+                    backgroundColor: Colors.blue.shade100,
+                    backgroundImage: _pickedImage != null
+                        ? FileImage(_pickedImage!)
+                        : (widget.patientData?['HinhAnh'] != null
+                            ? NetworkImage(widget.patientData!['HinhAnh'].toString().startsWith('http')
+                                ? widget.patientData!['HinhAnh'].toString()
+                                : '${ApiConfig.domain}${widget.patientData!['HinhAnh']}')
+                            : null) as ImageProvider?,
+                    child: _pickedImage == null && widget.patientData?['HinhAnh'] == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 65,
+                            color: Color(0xff4b5fb5),
+                          )
+                        : null,
                   ),
-                ),
-                Positioned(
-                  bottom: -5,
-                  right: -5,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
+                  Positioned(
+                    bottom: -5,
+                    right: -5,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          )
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Color(0xff4b5fb5),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      color: Color(0xff4b5fb5),
-                    ),
-                  ),
-                )
-              ],
+                  )
+                ],
+              ),
             ),
             const SizedBox(height: 30),
 
@@ -228,9 +389,15 @@ class _CapNhatThongTinState extends State<CapNhatThongTin> {
                   ),
                   const SizedBox(height: 15),
                   _textField(
-                    "Ngày sinh (YYYY-MM-DD)",
+                    "Ngày sinh",
                     Icons.calendar_today,
                     ngaySinhController,
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_month, color: Color(0xff4b5fb5)),
+                      onPressed: () => _selectDate(context),
+                    ),
                   ),
                   const SizedBox(height: 15),
                   DropdownButtonFormField<String>(
@@ -307,13 +474,19 @@ class _CapNhatThongTinState extends State<CapNhatThongTin> {
   Widget _textField(
     String label,
     IconData icon,
-    TextEditingController controller,
-  ) {
+    TextEditingController controller, {
+    bool readOnly = false,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
+  }) {
     return TextField(
       controller: controller,
+      readOnly: readOnly,
+      onTap: onTap,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
         ),

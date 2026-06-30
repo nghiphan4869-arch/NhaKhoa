@@ -60,6 +60,7 @@ class _HoSoBenhNhanState extends State<HoSoBenhNhan> {
         await prefs.setString('ngaySinh', data['NgaySinh'] ?? 'Chưa cập nhật');
         await prefs.setString('gioiTinh', data['GioiTinh'] ?? 'Chưa cập nhật');
         await prefs.setString('diaChi', data['DiaChi'] ?? 'Chưa cập nhật');
+        await prefs.setString('hinhAnh', data['HinhAnh'] ?? '');
       } else {
         setState(() {
           _error = 'Không thể tải hồ sơ (${response.statusCode})';
@@ -156,11 +157,18 @@ class _HoSoBenhNhanState extends State<HoSoBenhNhan> {
                                 CircleAvatar(
                                   radius: 55,
                                   backgroundColor: Colors.blue.shade100,
-                                  child: const Icon(
-                                    Icons.person,
-                                    size: 65,
-                                    color: Color(0xff4b5fb5),
-                                  ),
+                                  backgroundImage: _patientData?['HinhAnh'] != null
+                                      ? NetworkImage(_patientData!['HinhAnh'].toString().startsWith('http')
+                                          ? _patientData!['HinhAnh'].toString()
+                                          : '${ApiConfig.domain}${_patientData!['HinhAnh']}')
+                                      : null,
+                                  child: _patientData?['HinhAnh'] == null
+                                      ? const Icon(
+                                          Icons.person,
+                                          size: 65,
+                                          color: Color(0xff4b5fb5),
+                                        )
+                                      : null,
                                 ),
                                 Positioned(
                                   bottom: -5,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/NhacLichHen.dart';
 import '../widgets/bottom_nav.dart';
+import 'package:nhakhoa/services/benh_an_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DieuTri extends StatefulWidget {
   const DieuTri({super.key});
@@ -9,8 +11,55 @@ class DieuTri extends StatefulWidget {
   State<DieuTri> createState() => _DieuTriState();
 }
 
-
 class _DieuTriState extends State<DieuTri> {
+  List<dynamic> _medicalRecords = [];
+  bool _isLoading = true;
+  int? _maBenhNhan;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMedicalRecords();
+  }
+
+  Future<void> _loadMedicalRecords() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final maBn = prefs.getInt('maBenhNhan');
+      if (maBn != null && maBn > 0) {
+        _maBenhNhan = maBn;
+        final list = await BenhAnService.getBenhAnByPatient(maBn);
+        setState(() {
+          _medicalRecords = list;
+        });
+      } else {
+        setState(() {
+          _maBenhNhan = null;
+        });
+      }
+    } catch (e) {
+      print('Lỗi tải bệnh án: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) {
+      return 'Chưa cập nhật';
+    }
+    try {
+      final dt = DateTime.parse(dateStr).toLocal();
+      return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
+    } catch (e) {
+      return dateStr;
+    }
+  }
 
 
   @override
@@ -92,14 +141,16 @@ class _DieuTriState extends State<DieuTri> {
                             SizedBox(height: 8),
 
                             Text(
-                              "Niềng răng chỉnh nha",
+                              _medicalRecords.isNotEmpty
+                                  ? (_medicalRecords.first['ChanDoan'] ?? 'Khám & Điều trị')
+                                  : "Không có kế hoạch điều trị",
                               style: TextStyle(
-                                fontSize: width * 0.055,
+                                fontSize: width * 0.05,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
 
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
 
                             Row(
                               children: [
@@ -108,9 +159,11 @@ class _DieuTriState extends State<DieuTri> {
                                   size:  width * 0.03,
                                   color: Colors.blue,
                                 ),
-                                SizedBox(width: 5),
+                                const SizedBox(width: 5),
                                 Text(
-                                  "Bắt đầu: 27/05/2026",
+                                  _medicalRecords.isNotEmpty
+                                      ? "Ngày lập: ${_formatDate(_medicalRecords.first['NgayLap'])}"
+                                      : "Chưa bắt đầu",
                                 ),
                               ],
                             )
@@ -175,8 +228,19 @@ class _DieuTriState extends State<DieuTri> {
       ),
     );
   }
-//TAB TỔNG QUAN
   Widget _tongQuan() {
+    if (_medicalRecords.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text(
+            "Chưa có thông tin tiến trình điều trị",
+            style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
 
@@ -322,15 +386,13 @@ class _DieuTriState extends State<DieuTri> {
             children: [
               _info(
                 "Phương pháp điều trị",
-                "Niềng răng mắc cài kim loại",
+                _medicalRecords.isNotEmpty
+                    ? (_medicalRecords.first['ChanDoan'] ?? 'Khám & Điều trị')
+                    : "Chưa bắt đầu",
               ),
               _info(
-                "Tổng số buổi dự kiến",
-                "24 buổi",
-              ),
-              _info(
-                "Số buổi đã thực hiện",
-                "1/24 buổi",
+                "Số bệnh án ghi nhận",
+                "${_medicalRecords.length} bệnh án",
               ),
             ],
           ),
@@ -408,164 +470,138 @@ class _DieuTriState extends State<DieuTri> {
       ],
     );
   }
-//TAB LỊCH ĐIỀU TRỊ
   Widget _lichDieuTri() {
-    return Column(
-      children: [
-        _treatmentItem(
-          "Thăm khám và chuẩn đoán",
+    if (_medicalRecords.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text(
+            "Chưa có lịch trình điều trị",
+            style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+          ),
+        ),
+      );
+    }
+
+    final chronList = _medicalRecords.reversed.toList();
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: chronList.length,
+      itemBuilder: (context, index) {
+        final record = chronList[index];
+        final ngayLap = _formatDate(record['NgayLap'] ?? '');
+        final title = index == 0
+            ? "Thăm khám & Chẩn đoán"
+            : "Điều trị: ${record['ChanDoan'] ?? 'Khám định kỳ'}";
+
+        return _treatmentItem(
+          "$title ($ngayLap)",
           true,
-        ),
-        _treatmentItem(
-          "Lập kế hoạch điều trị",
-          true,
-        ),
-        _treatmentItem(
-          "Đang điều trị",
-          false,
-        ),
-        _treatmentItem(
-          "Điều chỉnh mắc cài lần 1",
-          false,
-        ),
-      ],
+        );
+      },
     );
   }
 //TAB HỒ SƠ ĐIỀU TRỊ
   Widget _hoSoDieuTri() {
-    return Column(
-      children: [
-
-        Container(
-          padding:
-              const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: const Color(0xfff8fbff),
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisAlignment:
-                MainAxisAlignment
-                    .spaceAround,
-            children: [
-              Column(
-                children: [
-                  Icon(Icons.calendar_month,
-                      color: Colors.blue),
-                  Text("24"),
-                  Text("Tổng số buổi"),
-                ],
-              ),
-              Column(
-                children: [
-                  Icon(Icons.check_circle,
-                      color: Colors.green),
-                  Text("14"),
-                  Text("Đã thực hiện"),
-                ],
-              ),
-              Column(
-                children: [
-                  Icon(Icons.access_time,
-                      color: Colors.orange),
-                  Text("10"),
-                  Text("Còn lại"),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        _card(
-          "Chuẩn đoán",
-          "Răng hô nhẹ, khớp cắn hạng III do sai lệch răng.",
-        ),
-
-        const SizedBox(height: 10),
-
-        _card(
-          "Phương pháp điều trị",
-          "Niềng răng mắc cài kim loại",
-        ),
-
-        const SizedBox(height: 10),
-
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xfff8fbff),
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue.shade100,
-              child: const Icon(
-                Icons.person,
-                color: Colors.blue,
-              ),
+    if (_medicalRecords.isEmpty) {
+      return Column(
+        children: [
+          const SizedBox(height: 20),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.grey.shade300),
             ),
-            title: const Text(
-              "BS. ABC",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: const Text(
-              "Chỉnh nha",
-              style: TextStyle(
-                color: Colors.grey,
-              ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.blue.shade100,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    iconSize: 18,
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.message_outlined,
-                      color: Colors.blue,
-                    ),
-                  ),
+            child: const Center(
+              child: Text(
+                "Chưa có bệnh án nào ghi nhận",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
                 ),
-                const SizedBox(width: 8),
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.green.shade100,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    iconSize: 18,
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.phone,
-                      color: Colors.green,
-                    ),
-                  ),
+              ),
+            ),
+          )
+        ],
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _medicalRecords.length,
+      itemBuilder: (context, index) {
+        final record = _medicalRecords[index];
+        final ngayLap = _formatDate(record['NgayLap'] ?? '');
+        
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 15),
+          child: Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Bệnh án #${record['MaBenhAn']}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      ngayLap,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                const Text(
+                  "Chẩn đoán:",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(record['ChanDoan'] ?? 'Chưa ghi nhận'),
+                const SizedBox(height: 12),
+                const Text(
+                  "Kết quả điều trị:",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(record['KetQuaDieuTri'] ?? 'Đang trong quá trình theo dõi & điều trị'),
+              ],
+            ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 //Hàm phụ

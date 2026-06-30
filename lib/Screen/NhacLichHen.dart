@@ -78,37 +78,52 @@ class _NhacLichState extends State<NhacLich> {
     return timeStr;
   }
 
-  List<dynamic> get _upcomingAppointments {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return _appointments.where((app) {
-      if (app['TrangThai'] == 'DaHuy') return false;
-      try {
-        final ngayHenStr = app['NgayHen'];
-        if (ngayHenStr == null) return false;
-        final dt = DateTime.parse(ngayHenStr).toLocal();
-        final appointmentDay = DateTime(dt.year, dt.month, dt.day);
-        return appointmentDay.isAfter(today) || appointmentDay.isAtSameMomentAs(today);
-      } catch (e) {
-        return false;
+  bool _isPastAppointment(dynamic app) {
+    try {
+      final ngayHenStr = app['NgayHen'];
+      if (ngayHenStr == null) return false;
+      
+      // Parse NgayHen và chuyển về giờ địa phương trước
+      final localDate = DateTime.parse(ngayHenStr).toLocal();
+      
+      // GioHen có dạng "14:30:00" hoặc "14:30"
+      String gioHenStr = app['GioHen'] ?? '00:00';
+      final timeParts = gioHenStr.split(':');
+      final int hour = timeParts.isNotEmpty ? int.parse(timeParts[0]) : 0;
+      final int minute = timeParts.length > 1 ? int.parse(timeParts[1]) : 0;
+      
+      // Kết hợp ngày địa phương với giờ địa phương
+      final appDt = DateTime(localDate.year, localDate.month, localDate.day, hour, minute);
+      
+      return appDt.isBefore(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String _getEffectiveStatus(dynamic app) {
+    final status = app['TrangThai'] ?? '';
+    if (status == 'ChoDuyet' || status == 'DaDuyet' || status == 'DaXacNhan' || status == 'ChoKham') {
+      if (_isPastAppointment(app)) {
+        return 'DaHetHan';
       }
+    }
+    return status;
+  }
+
+  List<dynamic> get _upcomingAppointments {
+    return _appointments.where((app) {
+      final status = _getEffectiveStatus(app);
+      if (status == 'DaHuy' || status == 'DaHetHan' || status == 'DaHoanTat') return false;
+      return !_isPastAppointment(app);
     }).toList();
   }
 
   List<dynamic> get _pastAppointments {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
     return _appointments.where((app) {
-      if (app['TrangThai'] == 'DaHuy') return true;
-      try {
-        final ngayHenStr = app['NgayHen'];
-        if (ngayHenStr == null) return true;
-        final dt = DateTime.parse(ngayHenStr).toLocal();
-        final appointmentDay = DateTime(dt.year, dt.month, dt.day);
-        return appointmentDay.isBefore(today);
-      } catch (e) {
-        return true;
-      }
+      final status = _getEffectiveStatus(app);
+      if (status == 'DaHuy' || status == 'DaHetHan' || status == 'DaHoanTat') return true;
+      return _isPastAppointment(app);
     }).toList();
   }
 
@@ -123,6 +138,8 @@ class _NhacLichState extends State<NhacLich> {
         return 'chờ khám';
       case 'DaHuy':
         return 'đã hủy';
+      case 'DaHetHan':
+        return 'đã hết hạn';
       default:
         return 'chờ duyệt';
     }
@@ -138,6 +155,8 @@ class _NhacLichState extends State<NhacLich> {
         return Colors.blue;
       case 'DaHuy':
         return Colors.red;
+      case 'DaHetHan':
+        return Colors.grey;
       default:
         return Colors.blue;
     }
@@ -229,8 +248,9 @@ class _NhacLichState extends State<NhacLich> {
                                 : Column(
                                     children: _upcomingAppointments.map((app) {
                                       final doctorName = _getDoctorName(app['MaBacSi'] ?? 1);
-                                      final statusLabel = _getStatusLabel(app['TrangThai'] ?? '');
-                                      final color = _getStatusColor(app['TrangThai'] ?? '');
+                                      final status = _getEffectiveStatus(app);
+                                      final statusLabel = _getStatusLabel(status);
+                                      final color = _getStatusColor(status);
                                       final dateText = _formatDate(app['NgayHen']);
                                       final timeText = _formatTime(app['GioHen']);
                                       
@@ -270,8 +290,9 @@ class _NhacLichState extends State<NhacLich> {
                                 : Column(
                                     children: _pastAppointments.map((app) {
                                       final doctorName = _getDoctorName(app['MaBacSi'] ?? 1);
-                                      final statusLabel = _getStatusLabel(app['TrangThai'] ?? '');
-                                      final color = _getStatusColor(app['TrangThai'] ?? '');
+                                      final status = _getEffectiveStatus(app);
+                                      final statusLabel = _getStatusLabel(status);
+                                      final color = _getStatusColor(status);
                                       final dateText = _formatDate(app['NgayHen']);
                                       final timeText = _formatTime(app['GioHen']);
                                       

@@ -38,15 +38,13 @@ class _CapNhatTinhTrangState
       [];
 
   Future<void> pickDate() async {
-    final date =
-        await showDatePicker(
+    final date = await showDatePicker(
       context: context,
-      initialDate:
-          selectedDate,
-      firstDate:
-          DateTime(2024),
-      lastDate:
-          DateTime(2030),
+      initialDate: selectedDate,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2030),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      locale: const Locale('vi', 'VN'),
     );
 
     if (date != null) {

@@ -4,7 +4,9 @@ class ApiConfig {
   static const String domain = 'http://10.0.2.2:3000';
   
   static const String taiKhoanUrl = '$domain/api/tai-khoan';
-  static const String benhNhanUrl = '$domain/api/benh-nhan';
   static const String lichHenUrl = '$domain/api/lich-hen';
   static const String dichVuUrl = '$domain/api/dich-vu';
+  static const String benhNhanUrl = '$domain/api/benh-nhan';
+  static const String benhAnUrl = '$domain/api/benh-an';
+  static const String theoDoiUrl = '$domain/api/theo-doi';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'Screen/TrangChu.dart';
 import 'Screen/DangNhap.dart';
 
@@ -13,6 +14,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        Locale('vi', 'VN'),
+        Locale('en', 'US'),
+      ],
+      locale: Locale('vi', 'VN'),
       home: DangNhap(),
     );
   }

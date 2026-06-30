@@ -54,6 +54,7 @@ class AuthService {
           await prefs.setString('ngaySinh', user['NgaySinh'] ?? 'Chưa cập nhật');
           await prefs.setString('gioiTinh', user['GioiTinh'] ?? 'Chưa cập nhật');
           await prefs.setString('diaChi', user['DiaChi'] ?? 'Chưa cập nhật');
+          await prefs.setString('hinhAnh', user['HinhAnh'] ?? '');
           
           return user;
         }

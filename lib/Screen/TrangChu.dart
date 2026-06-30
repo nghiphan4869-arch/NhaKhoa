@@ -4,7 +4,7 @@ import 'package:nhakhoa/Screen/DatLichHen.dart';
 import 'package:nhakhoa/Screen/DieuTri.dart';
 import 'package:nhakhoa/Screen/DonThuoc.dart';
 import 'package:nhakhoa/Screen/LichHen.dart';
-import 'package:nhakhoa/Screen/PhanHoi.dart';
+import 'package:nhakhoa/Screen/ChonLichPhanHoi.dart';
 import 'package:nhakhoa/Screen/TaiKham.dart';
 import 'package:nhakhoa/Screen/HuyLichHen.dart';
 import '../widgets/home_banner.dart';
@@ -167,7 +167,7 @@ class TrangChu extends StatelessWidget {
                     color:
                         const Color(0xffefe5d8),
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => PhanHoi(),),);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ChonLichPhanHoi(),),);
                     },
                   ),
                   const SizedBox(width: 10),
