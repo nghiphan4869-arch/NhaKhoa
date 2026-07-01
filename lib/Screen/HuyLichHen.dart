@@ -108,11 +108,15 @@ class _HuyLichHenState extends State<HuyLichHen> {
     }
   }
 
-  String _formatTime(String timeStr) {
-    if (timeStr.length >= 5) {
-      return timeStr.substring(0, 5);
+  String _formatTime(dynamic timeStr) {
+    if (timeStr == null || timeStr.toString().isEmpty) {
+      return "Chờ xếp lịch";
     }
-    return timeStr;
+    final s = timeStr.toString();
+    if (s.length >= 5) {
+      return s.substring(0, 5);
+    }
+    return s;
   }
 
   String _getStatusLabel(String status) {
@@ -228,10 +232,10 @@ class _HuyLichHenState extends State<HuyLichHen> {
                       ),
                       isExpanded: true,
                       items: _appointments.map((app) {
-                        final date = _formatDate(app['NgayHen']);
-                        final time = _formatTime(app['GioHen']);
-                        final doc = _getDoctorName(app['MaBacSi'] ?? 1);
-                        final reason = (app['LyDoKham'] ?? '').split(':')[0].trim();
+                         final date = _formatDate(app['NgayHen']);
+                         final time = _formatTime(app['GioHen']);
+                         final doc = app['TenBacSi'] ?? _getDoctorName(app['MaBacSi'] ?? 1);
+                         final reason = (app['LyDoKham'] ?? '').split(':')[0].trim();
                         return DropdownMenuItem<int>(
                           value: app['MaLichHen'],
                           child: Text("$reason - $doc ($time $date)"),
@@ -371,7 +375,7 @@ class _HuyLichHenState extends State<HuyLichHen> {
 
                           _infoRow(
                             Icons.person_outline,
-                            _getDoctorName(_selectedAppointment['MaBacSi'] ?? 1),
+                            _selectedAppointment['TenBacSi'] ?? _getDoctorName(_selectedAppointment['MaBacSi'] ?? 1),
                           ),
                           _infoRow(
                             Icons.calendar_today,

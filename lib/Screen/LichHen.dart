@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/DatLichHen.dart';
 import 'package:nhakhoa/Screen/DieuTri.dart';
-import 'package:nhakhoa/Screen/NhacLichHen.dart';
+import 'package:nhakhoa/Screen/ThongBao.dart';
 import 'package:nhakhoa/Screen/DangNhap.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nhakhoa/services/lich_hen_service.dart';
@@ -78,11 +78,15 @@ class _LichHenState extends State<LichHen> {
     }
   }
 
-  String _formatTime(String timeStr) {
-    if (timeStr.length >= 5) {
-      return timeStr.substring(0, 5);
+  String _formatTime(dynamic timeStr) {
+    if (timeStr == null || timeStr.toString().isEmpty) {
+      return "Chờ xếp lịch";
     }
-    return timeStr;
+    final s = timeStr.toString();
+    if (s.length >= 5) {
+      return s.substring(0, 5);
+    }
+    return s;
   }
 
   bool _isPastAppointment(dynamic app) {
@@ -248,7 +252,7 @@ class _LichHenState extends State<LichHen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const NhacLich(),
+                                      builder: (context) => const ThongBao(),
                                     ),
                                   );
                                 },
@@ -341,13 +345,13 @@ class _LichHenState extends State<LichHen> {
                                       child: _appointmentCard(
                                         color: cardColor,
                                         time: "${_formatDate(app['NgayHen'])} • ${_formatTime(app['GioHen'])}",
-                                        doctor: _getDoctorName(app['MaBacSi'] ?? 1),
+                                        doctor: app['TenBacSi'] ?? _getDoctorName(app['MaBacSi'] ?? 1),
                                         note: app['LyDoKham'] ?? 'Không có lý do',
                                         status: status,
                                         onFeedbackPressed: status == 'DaHoanTat'
                                             ? () => _showFeedbackDialog(
                                                 app['MaLichHen'],
-                                                _getDoctorName(app['MaBacSi'] ?? 1),
+                                                app['TenBacSi'] ?? _getDoctorName(app['MaBacSi'] ?? 1),
                                               )
                                             : null,
                                       ),

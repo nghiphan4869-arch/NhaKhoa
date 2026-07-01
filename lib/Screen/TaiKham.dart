@@ -335,9 +335,11 @@ Widget build(BuildContext context) {
                               ),
                             ),
                           ],
-                        )
+                        ),
                       ],
-                     const SizedBox(height: 18),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
 
                   /// CHỌN BÁC SĨ
                   Align(

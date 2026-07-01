@@ -7,6 +7,7 @@ class XacNhanLichHen extends StatefulWidget {
   final DateTime selectedDay;
   final String selectedTime;
   final int duration;
+  final int doctorId;
   final String doctorName;
   final String serviceName;
   final String reason;
@@ -16,6 +17,7 @@ class XacNhanLichHen extends StatefulWidget {
     required this.selectedDay,
     required this.selectedTime,
     required this.duration,
+    required this.doctorId,
     required this.doctorName,
     required this.serviceName,
     required this.reason,
@@ -53,6 +55,7 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
   }
 
   String get _endTime {
+    if (widget.selectedTime.isEmpty) return "";
     final parts = widget.selectedTime.split(':');
     if (parts.length != 2) return widget.selectedTime;
     final hour = int.tryParse(parts[0]) ?? 0;
@@ -64,19 +67,6 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
     final endHour = endDateTime.hour.toString().padLeft(2, '0');
     final endMinute = endDateTime.minute.toString().padLeft(2, '0');
     return "$endHour:$endMinute";
-  }
-
-  int _getDoctorId(String name) {
-    switch (name) {
-      case "BS. Trần Thùy Dương":
-        return 1;
-      case "BS. Nguyễn Văn A":
-        return 3;
-      case "BS. Lê Thị B":
-        return 4;
-      default:
-        return 1;
-    }
   }
 
   Future<void> _confirmBooking() async {
@@ -97,16 +87,19 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
     // Format ngày hẹn sang YYYY-MM-DD
     final String ngayHen = "${widget.selectedDay.year}-${widget.selectedDay.month.toString().padLeft(2, '0')}-${widget.selectedDay.day.toString().padLeft(2, '0')}";
     
-    // Format giờ hẹn sang HH:MM:SS
-    String gioHen = widget.selectedTime;
-    if (gioHen.split(':')[0].length == 1) {
-      gioHen = "0$gioHen";
-    }
-    if (gioHen.split(':').length == 2) {
-      gioHen = "$gioHen:00";
+    // Format giờ hẹn sang HH:MM:SS (nếu có)
+    String? gioHen;
+    if (widget.selectedTime.isNotEmpty) {
+      gioHen = widget.selectedTime;
+      if (gioHen.split(':')[0].length == 1) {
+        gioHen = "0$gioHen";
+      }
+      if (gioHen.split(':').length == 2) {
+        gioHen = "$gioHen:00";
+      }
     }
 
-    final int maBacSi = _getDoctorId(widget.doctorName);
+    final int maBacSi = widget.doctorId;
     final String lyDo = "${widget.serviceName}: ${widget.reason.trim().isNotEmpty ? widget.reason.trim() : 'Đặt lịch khám qua ứng dụng'}";
 
     final errorMessage = await LichHenService.createAppointment(
@@ -137,7 +130,7 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
                 Text("Thành công", style: TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
-            content: const Text("Lịch hẹn của bạn đã được gửi thành công và đang chờ duyệt."),
+            content: const Text("Lịch hẹn đang chờ duyệt & sắp xếp thời gian. Hãy kiểm tra thông báo thường xuyên để cập nhật."),
             actions: [
               ElevatedButton(
                 onPressed: () {
@@ -268,7 +261,9 @@ class _XacNhanLichHenState extends State<XacNhanLichHen> {
                         _infoRow(
                           Icons.access_time,
                           "Giờ khám",
-                          "${widget.selectedTime} - $_endTime (${widget.duration} phút)",
+                          widget.selectedTime.isNotEmpty
+                              ? "${widget.selectedTime} - $_endTime (${widget.duration} phút)"
+                              : "Chờ xếp lịch",
                         ),
                       ],
                     ),

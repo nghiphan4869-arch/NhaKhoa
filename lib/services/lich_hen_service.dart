@@ -56,12 +56,29 @@ class LichHenService {
     }
   }
 
+  /// Lấy danh sách bác sĩ rảnh theo ngày
+  static Future<List<dynamic>> getAvailableDoctors(String ngayHen) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/bacsi-ranh?ngay=$ngayHen'),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes)) as List<dynamic>;
+      }
+      return [];
+    } catch (e) {
+      print('Lỗi lấy danh sách bác sĩ rảnh: $e');
+      return [];
+    }
+  }
+
   /// Đặt lịch hẹn mới
   static Future<String?> createAppointment({
     required int maBenhNhan,
     required int maBacSi,
     required String ngayHen,
-    required String gioHen,
+    required String? gioHen,
     required String lyDoKham,
   }) async {
     try {

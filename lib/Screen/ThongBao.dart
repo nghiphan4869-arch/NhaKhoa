@@ -3,15 +3,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nhakhoa/services/lich_hen_service.dart';
 import '../widgets/bottom_nav.dart';
 
-class NhacLich extends StatefulWidget {
-  const NhacLich({super.key});
+class ThongBao extends StatefulWidget {
+  const ThongBao({super.key});
 
   @override
-  State<NhacLich> createState() => _NhacLichState();
+  State<ThongBao> createState() => _ThongBaoState();
 }
 
-class _NhacLichState extends State<NhacLich> {
-  int selectedTab = 0; // 0: Tất cả, 1: Sắp tới, 2: Đã qua
+class _ThongBaoState extends State<ThongBao> {
+  int selectedTab = 0; // 0: Tất cả, 1: Mới, 2: Cũ
   List<dynamic> _appointments = [];
   bool _isLoading = true;
   int? _maBenhNhan;
@@ -41,7 +41,7 @@ class _NhacLichState extends State<NhacLich> {
         });
       }
     } catch (e) {
-      print('Lỗi tải lịch hẹn nhắc lịch: $e');
+      print('Lỗi tải lịch hẹn thông báo: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -71,11 +71,15 @@ class _NhacLichState extends State<NhacLich> {
     }
   }
 
-  String _formatTime(String timeStr) {
-    if (timeStr.length >= 5) {
-      return timeStr.substring(0, 5);
+  String _formatTime(dynamic timeStr) {
+    if (timeStr == null || timeStr.toString().isEmpty) {
+      return "Chờ xếp lịch";
     }
-    return timeStr;
+    final s = timeStr.toString();
+    if (s.length >= 5) {
+      return s.substring(0, 5);
+    }
+    return s;
   }
 
   bool _isPastAppointment(dynamic app) {
@@ -113,6 +117,9 @@ class _NhacLichState extends State<NhacLich> {
 
   List<dynamic> get _upcomingAppointments {
     return _appointments.where((app) {
+      final gioHen = app['GioHen'];
+      if (gioHen == null || gioHen.toString().isEmpty) return false;
+
       final status = _getEffectiveStatus(app);
       if (status == 'DaHuy' || status == 'DaHetHan' || status == 'DaHoanTat') return false;
       return !_isPastAppointment(app);
@@ -121,6 +128,9 @@ class _NhacLichState extends State<NhacLich> {
 
   List<dynamic> get _pastAppointments {
     return _appointments.where((app) {
+      final gioHen = app['GioHen'];
+      if (gioHen == null || gioHen.toString().isEmpty) return false;
+
       final status = _getEffectiveStatus(app);
       if (status == 'DaHuy' || status == 'DaHetHan' || status == 'DaHoanTat') return true;
       return _isPastAppointment(app);
@@ -173,7 +183,7 @@ class _NhacLichState extends State<NhacLich> {
             : _maBenhNhan == null
                 ? const Center(
                     child: Text(
-                      "Vui lòng đăng nhập để xem nhắc lịch",
+                      "Vui lòng đăng nhập để xem thông báo",
                       style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   )
@@ -187,7 +197,7 @@ class _NhacLichState extends State<NhacLich> {
                         children: [
                           /// TIÊU ĐỀ
                           const Text(
-                            "Nhắc lịch hẹn",
+                            "Thông báo",
                             style: TextStyle(
                               fontSize: 34,
                               fontWeight: FontWeight.bold,
@@ -208,14 +218,14 @@ class _NhacLichState extends State<NhacLich> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: _buildTab(
-                                  "Sắp tới",
+                                  "Mới",
                                   1,
                                 ),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: _buildTab(
-                                  "Đã qua",
+                                  "Cũ",
                                   2,
                                 ),
                               ),
@@ -227,27 +237,27 @@ class _NhacLichState extends State<NhacLich> {
                           /// LỊCH HẸN SẮP TỚI
                           if (selectedTab == 0 || selectedTab == 1) ...[
                             const Text(
-                              "Sắp tới",
+                              "Thông báo mới",
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 15),
-                            _upcomingAppointments.isEmpty
-                                ? const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 10),
-                                    child: Text(
-                                      "Chưa có lịch hẹn sắp tới nào",
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  )
+                             _upcomingAppointments.isEmpty
+                                 ? const Padding(
+                                     padding: EdgeInsets.symmetric(vertical: 10),
+                                     child: Text(
+                                       "Chưa có thông báo lịch hẹn sắp tới nào",
+                                       style: TextStyle(
+                                         color: Colors.grey,
+                                         fontStyle: FontStyle.italic,
+                                       ),
+                                     ),
+                                   )
                                 : Column(
                                     children: _upcomingAppointments.map((app) {
-                                      final doctorName = _getDoctorName(app['MaBacSi'] ?? 1);
+                                      final doctorName = app['TenBacSi'] ?? _getDoctorName(app['MaBacSi'] ?? 1);
                                       final status = _getEffectiveStatus(app);
                                       final statusLabel = _getStatusLabel(status);
                                       final color = _getStatusColor(status);
@@ -255,8 +265,10 @@ class _NhacLichState extends State<NhacLich> {
                                       final timeText = _formatTime(app['GioHen']);
                                       
                                       return _buildAppointmentCard(
-                                        title: "Lịch hẹn sắp tới ($statusLabel)",
-                                        description: "Bạn có lịch hẹn với $doctorName vào lúc $timeText ngày $dateText.",
+                                        title: "Thông báo sắp tới ($statusLabel)",
+                                        description: timeText == "Chờ xếp lịch"
+                                            ? "Bạn có lịch hẹn với $doctorName ngày $dateText (đang chờ xếp giờ cụ thể)."
+                                            : "Bạn có lịch hẹn với $doctorName vào lúc $timeText ngày $dateText.",
                                         time: timeText,
                                         date: dateText,
                                         color: color,
@@ -269,27 +281,27 @@ class _NhacLichState extends State<NhacLich> {
                           /// LỊCH HẸN ĐÃ QUA
                           if (selectedTab == 0 || selectedTab == 2) ...[
                             const Text(
-                              "Đã qua",
+                              "Thông báo cũ",
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 15),
-                            _pastAppointments.isEmpty
-                                ? const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 10),
-                                    child: Text(
-                                      "Chưa có lịch hẹn nào đã qua",
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  )
+                             _pastAppointments.isEmpty
+                                 ? const Padding(
+                                     padding: EdgeInsets.symmetric(vertical: 10),
+                                     child: Text(
+                                       "Chưa có thông báo lịch hẹn nào đã qua",
+                                       style: TextStyle(
+                                         color: Colors.grey,
+                                         fontStyle: FontStyle.italic,
+                                       ),
+                                     ),
+                                   )
                                 : Column(
                                     children: _pastAppointments.map((app) {
-                                      final doctorName = _getDoctorName(app['MaBacSi'] ?? 1);
+                                      final doctorName = app['TenBacSi'] ?? _getDoctorName(app['MaBacSi'] ?? 1);
                                       final status = _getEffectiveStatus(app);
                                       final statusLabel = _getStatusLabel(status);
                                       final color = _getStatusColor(status);
@@ -297,8 +309,10 @@ class _NhacLichState extends State<NhacLich> {
                                       final timeText = _formatTime(app['GioHen']);
                                       
                                       return _buildAppointmentCard(
-                                        title: "Lịch hẹn $statusLabel",
-                                        description: "Lịch hẹn với $doctorName vào lúc $timeText ngày $dateText.",
+                                        title: "Thông báo $statusLabel",
+                                        description: timeText == "Chờ xếp lịch"
+                                            ? "Lịch hẹn với $doctorName ngày $dateText (chưa xếp giờ cụ thể)."
+                                            : "Lịch hẹn với $doctorName vào lúc $timeText ngày $dateText.",
                                         time: timeText,
                                         date: dateText,
                                         color: color,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/HoSoBenhNhan.dart';
-import 'package:nhakhoa/Screen/NhacLichHen.dart';
+import 'package:nhakhoa/Screen/ThongBao.dart';
 import 'package:nhakhoa/services/api_config.dart';
 import '../widgets/bottom_nav.dart';
 import 'package:nhakhoa/Screen/Dangnhap.dart';
@@ -74,7 +74,7 @@ class CaNhan extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => NhacLich(),
+                                builder: (context) => const ThongBao(),
                               ),
                             );
                           },
@@ -295,12 +295,12 @@ class CaNhan extends StatelessWidget {
                     ),
 
                     _buildMenuItem(
-                      "Nhắc lịch hẹn",
+                      "Thông báo",
                       () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => NhacLich(),
+                            builder: (context) => const ThongBao(),
                           ),
                         );
                       },

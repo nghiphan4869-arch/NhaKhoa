@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nhakhoa/Screen/TrangChu.dart';
 import 'package:nhakhoa/Screen/CaNhan.dart';
-import 'package:nhakhoa/Screen/NhacLichHen.dart';
+import 'package:nhakhoa/Screen/ThongBao.dart';
 import 'package:nhakhoa/Screen/DieuTri.dart';
 import 'package:nhakhoa/Screen/LichHen.dart';
 
@@ -54,7 +54,7 @@ class BottomNav extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (_) => const NhacLich(),
+                builder: (_) => const ThongBao(),
               ),
             );
             break;
@@ -85,7 +85,7 @@ class BottomNav extends StatelessWidget {
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.notifications_none),
-          label: "Nhắc lịch",
+          label: "Thông báo",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),

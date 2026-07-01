@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nhakhoa/Screen/NhacLichHen.dart';
+import 'package:nhakhoa/Screen/ThongBao.dart';
 import '../widgets/bottom_nav.dart';
 import 'package:nhakhoa/services/benh_an_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -95,7 +95,7 @@ class _DieuTriState extends State<DieuTri> {
                     ),
                     IconButton(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const NhacLich(),),);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ThongBao(),),);
                       },
                       icon: const Icon(
                         Icons.notifications_none,
